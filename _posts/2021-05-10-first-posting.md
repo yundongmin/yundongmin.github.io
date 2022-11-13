@@ -44,7 +44,7 @@ wow
 
 **I hope you like it!**
 I hope you like it!
-I hope you like it!
+I hope you like it!![강아지](C:\yundongmin-github-blog\yundongmin.github.io\yundongmin.github.io\images\2021-05-10-first-posting\강아지.jpg)
 ㅋㅋ
 
 ```python
