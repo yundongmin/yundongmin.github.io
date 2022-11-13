@@ -32,7 +32,7 @@ words_per_minute: 200
 comments:
   provider: "disqus" # false (default), "disqus", "discourse", "facebook", "staticman", "staticman_v2", "utterances", "custom"
   disqus:
-    shortname: "teddynote"
+    shortname: "yundongmin"
   discourse:
     server: # https://meta.discourse.org/t/embedding-discourse-comments-via-javascript/31963 , e.g.: meta.discourse.org
   facebook:
@@ -88,7 +88,7 @@ social:
 analytics:
   provider: "google-gtag" # false (default), "google", "google-universal", "google-gtag", "custom"
   google:
-    tracking_id: "G-4RR59X64CC"
+    tracking_id: "G-Q3GGZYEKYR"
     anonymize_ip: false
 
 # Site Author
