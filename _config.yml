@@ -97,20 +97,20 @@ author:
   avatar: # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio: "저의 학습 및 ai프로젝트를 소개하는 블로그입니다"
   location: "South Korea"
-  email: "kantera16@naver.com"
+  email:
   links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
       url: "mailto:teddylee777@gmail.com"
     - label: "Website"
       icon: "fas fa-fw fa-link"
-      url: "https://teddylee777.github.io"
+      url: "https://yundongmin.github.io"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/teddylee777"
-    - label: "Instagram"
-      icon: "fab fa-fw fa-instagram"
-      url: "https://instagram.com/teddynote"
+      url: "https://yundongmin.github.io"
+    - label: "YouTube"
+      icon: "fab fa-fw fa-youtube"
+      url: "https://www.youtube.com/channel/UCvbvpAcTc_kFME6iCNED43A"
 
 # Site Footer
 footer:
@@ -118,9 +118,12 @@ footer:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/yundongmin"
-    - label: "Instagram"
-      icon: "fab fa-fw fa-instagram"
-      url: "https://instagram.com/teddynote"
+    - label: "Facebook"
+      icon: "fab fa-fw fa-facebook-square"
+      url: "https://www.facebook.com/profile.php?id=100015716289883"
+    - label: "YouTube"
+      icon: "fab fa-fw fa-youtube"
+      url: "https://www.youtube.com/channel/UCvbvpAcTc_kFME6iCNED43A"
 
 # Reading Files
 include:
