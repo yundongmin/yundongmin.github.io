@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "2202.11.02.파이썬 기초 데이터처리 기술(2)"
+title: "2202.11.03.파이썬 기초 데이터처리 기술(2)"
 categories: python_basic
 tag: [python]
 author_profile: false
