@@ -2,7 +2,7 @@
 layout: single
 title: "2202.11.02.파이썬 기초 데이터처리 기술(1)"
 categories: python_basic
-tag: [python, jupyter]
+tag: [python]
 author_profile: false
 toc: true
 toc_label: "Unique Title"
@@ -26,7 +26,14 @@ toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 
 여러 카테고리를 만들어 파이썬과 인공지능에 대해 공부해 나갈 겁니다. 이 중 python_basic는 지금까지 제가 배운 내용을 정리해서 복습하는 기회로 소개해드리겠습니다.
 
-## 코드
+## 파이썬 기초 데이터처리 기술(1)
+
+1. 변수 이름 부여 규칙
+2. 숫자형 변수
+3. 문자열 변수
+4. 데이터 구조
+5. 튜플
+6. 딕셔너리
 
 ```python
 # 출처 -> 02.Python_초급.pdf
@@ -585,23 +592,3 @@ fp.get("ap")
 ```python
 
 ```
-
-## 이미지 목차
-
-### 이미지 세부 목차1
-
-이미지입니다.
-
-### 이미지 세부 목차2
-
-이미지입니다.{: .notice}
-
-### 이미지 세부 목차3
-
-이미지입니다.
-
-![샘플 이미지 입니다.](https://images.unsplash.com/photo-1579353977828-2a4eab540b9a?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8c2FtcGxlfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&w=1000&q=80)
-
-# 와우2
-
-안녕하세요?
