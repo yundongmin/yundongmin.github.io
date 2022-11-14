@@ -2,16 +2,12 @@
 layout: single
 title: "2202.11.02.파이썬 기초 데이터처리 기술(1)"
 categories: python_basic
-tag: [python, jupyter, ]
+tag: [python, jupyter]
 author_profile: false
 toc: true
 toc_label: "Unique Title"
 toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 ---
-
-# 살려줘~
-
-
 
 <div class="notice--success">
 <h4>학습 순서</h4>
@@ -22,26 +18,13 @@ toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 </ul>
 </div>
 
-
-
 ## 소개
 
-안녕하세요 인공지능 개발자를 지망하는 윤동민입니다.  지금까지 파이썬 데이터 처리와 크롤링 등은 많이 해봤지만, 머닝러신, 딥러닝 쪽은 이론 공부만 해봤지 실제 구현은 해본적이 없습니다.  때문에 이번기회에 지금까지 배운것을 쭉 정리하고, 인공지능을 공부해 볼려고 합니다.
+안녕하세요 인공지능 개발자를 지망하는 윤동민입니다. 지금까지 파이썬 데이터 처리와 크롤링 등은 많이 해봤지만, 머닝러신, 딥러닝 쪽은 이론 공부만 해봤지 실제 구현은 해본적이 없습니다. 때문에 이번기회에 지금까지 배운것을 쭉 정리하고, 인공지능을 공부해 볼려고 합니다. 지금은 부족하지만, 앞으로 성장해가는 모습을 보여드리겠습니다.
 
-## Okay Let's go
+## 개요
 
-wow
-
-# 와우~
-
-**Hello world**, this is my first Jekyll blog post.
-
-**I hope you like it!**
-I hope you like it!
-I hope you like it!
-
-![강아지](C:\yundongmin-github-blog\yundongmin.github.io\yundongmin.github.io\images\2021-05-10-first-posting\강아지.jpg)
-ㅋㅋ
+여러 카테고리를 만들어 파이썬과 인공지능에 대해 공부해 나갈 겁니다. 이 중 python_basic는 지금까지 제가 배운 내용을 정리해서 복습하는 기회로 소개해드리겠습니다.
 
 ```python
 class <className>:
@@ -61,8 +44,6 @@ class <className>:
 
    # As many methods as needed
 ```
-
-**실시간 으로 반영이 되는 것을 보실 수 있나요?**
 
 ```python
 class <className>:
