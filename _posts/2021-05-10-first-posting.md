@@ -1,32 +1,33 @@
 ---
 layout: single
-title: "2202.11.02 파이썬 기초 및 데이터 처리 기술(1)"
-categories: Basic
-tag: [python, data_access]
+title: "첫번 째 블로그입니다!"
+categories: coding
+tag: [python, blog, jekyll]
 author_profile: false
 toc: true
 toc_label: "Unique Title"
 toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 ---
 
-# 첫글 입니다.~
+# 살려줘~
 
 **[공지사항]** [지킬블로그 신규 업데이트 안내 드립니다.](https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/)
 {: .notice--danger}
 
 <div class="notice--success">
-<h4>파이썬 기초 공부 순서</h4>
+<h4>공지사항입니다.</h4>
 <ul>
-    <li>기초 데이터 처리 기술</li>
-    <li>파이썬 크롤링</li>
-    <li>파이썬 API 적용</li>
+    <li>공지사항 순서 1</li>
+    <li>공지사항 순서 2</li>
+    <li>공지사항 순서 3</li>
 </ul>
 </div>
 
-## 안녕하세요 인공지능 개발자를 지망하는 윤동민이라 합니다.
+테스트 수정!
 
-오늘 부터 인공지능에 대해 공부를 할려고 합니다. 하지만, 크롤링과 수학 함수는 많이 했지만, 머닝러신과 딥러닝은 이론으로만 배웠지 구현을 해본적이 없습니다. 때문에 이번기회에 지금까지 배운 배용을 전부 정리하고, 순차적으로 인공지능을 배울려고 합니다.
-많이 미숙한 부분이 많을테지만 천천히 제 학습과 성장을 지켜봐 주시기 바랍니다.
+[버튼입니다](https://google.com){: .btn .btn--danger}
+
+{% include video id="ACzFIAOsfpM" provider="youtube" %}
 
 ## This is a Test
 
@@ -42,7 +43,7 @@ wow
 
 **I hope you like it!**
 I hope you like it!
-
+I hope you like it!![강아지](C:\yundongmin-github-blog\yundongmin.github.io\yundongmin.github.io\images\2021-05-10-first-posting\강아지.jpg)
 ㅋㅋ
 
 ```python
