@@ -1,15 +1,15 @@
 ---
 layout: single
-title: "첫번 째 블로그입니다!"
-categories: coding
-tag: [python, blog, jekyll]
+title: "2202.11.02 파이썬 기초 및 데이터 처리 기술"
+categories: Basic
+tag: [python, data_access]
 author_profile: false
 toc: true
 toc_label: "Unique Title"
 toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 ---
 
-# 살려줘~
+# 첫글 입니다.~
 
 **[공지사항]** [지킬블로그 신규 업데이트 안내 드립니다.](https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/)
 {: .notice--danger}
