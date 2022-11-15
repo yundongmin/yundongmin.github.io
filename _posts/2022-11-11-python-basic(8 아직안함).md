@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "2202.11.08.파이썬 기초 데이터처리 기술(5)"
+title: "2202.11.11.파이썬 기초 데이터처리 기술(8)"
 categories: python_basic
 tag: [python]
 author_profile: false
