@@ -13,8 +13,9 @@ toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 <h4>Python_Basic 학습 순서</h4>
 <ul>
     <li>1. 파이썬 기초 및 데이터 처리</li>
-    <li>2. 파이썬 크롤링</li>
-    <li>3. 파이썬 api</li>
+    <li>2. 파이썬 기초 및 데이터 수집</li>
+    <li>3. 파이썬 크롤링</li>
+    <li>4. 파이썬 api</li>
 </ul>
 </div>
 
