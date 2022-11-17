@@ -29,30 +29,276 @@ toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 
 ## 파이썬 기초 데이터처리 기술(1)
 
-1. 데이터처리
-2. matplotlib\_시각화
-3. numpy_quickstart
+1. 데이터수집 네이버뉴스 여러날짜적용 및 DB 등록
+2. 데이터수집 selenium
+3. python db연동
 
-#### 1. 데이터처리
+#### 1. 데이터수집 네이버뉴스 여러날짜적용 및 DB 등록
 
-### ( 데이터 처리 실습 )
+### ( 실습. 네이버 뉴스 수집 여러 페이지 )
 
-1. 데이터셋-winequality 데이터셋
-2. matplotlib 시각화
-3. numpy_quickstart
+1. 날짜는 22.11.08 ~ 22.11.10
+   - 날짜별 페이지는 3page (1,2,3)
+   - df 컬럼 추가
+     - 날짜 컬럼, page 컬럼
+2. 통합 df로 만들기
 
 ```python
 import pandas as pd
 
-red_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
-white_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
+import requests
+from bs4 import BeautifulSoup
+headers = { "User-Agent":"Mozilla/5.0"}
 
-red_wine = pd.read_csv(red_url, sep=";")
-white_wine = pd.read_csv(white_url, sep=";")
+url = "https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001"
+
+def get_page(url):
+    # 해당 url requests.get
+    html = requests.get(url, headers=headers).text
+    soup = BeautifulSoup(html)
+    type06 = soup.find("ul",{"class":"type06_headline"})
+    dl = type06.find_all("dl")
+    return dl
+
+def page_to_items(dl):
+    news_page = []
+    for item2 in dl:
+        try:
+            # img_src 방법 1
+            img = item2.find("dt",{"class":"photo"}).find("img")
+            img_src = img["src"]
+
+            # img_src 방법 2
+            img_src = item2.find("dt",{"class":"photo"}).find("img")["src"]
+
+            # 기사 주소 & 타이틀
+            link = item2.find("dt", {"class" : ""}).find("a")
+            link_href = link["href"]
+            link_text = link.text.replace("\t","").replace("\r\n","").lstrip()
+            # 내용
+            content_text = item2.find("dd").text.replace("\n","").split("…")[0]
+            news_page.append([img_src, link_href, link_text, content_text])
+        except:
+            print(" No image or Content ")
+    return news_page
 ```
 
 ```python
-red_wine.head(3)
+url = "https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001"
+news_date = pd.date_range("2022-11-08", periods=3)
+
+init = 0
+
+for wk_date in news_date:
+    for wk_page in (range(0,3)):
+        str_date = wk_date.strftime("%Y%m%d")
+        target_url = url + "&date=" + str_date + "&page=" + str(wk_page)
+        print(target_url)
+
+        get_dl = get_page(url)
+        news_page = page_to_items(get_dl)
+
+        news_page_df = pd.DataFrame(news_page,
+                              columns = ["이미지링크","기사링크","기사제목",
+                                         "기사내용"])
+        news_page_df["날짜"] = wk_date
+        news_page_df["page"] = wk_page
+
+        if init == 0:
+            total_df = news_page_df.copy()
+            init = 1
+        else:
+            total_df = pd.concat([total_df, news_page_df], ignore_index=True)
+
+        print("total_df = ", total_df.shape)
+
+# 컬럼순서 바꾸기
+total_df = total_df[["날짜","page","이미지링크","기사링크","기사제목","기사내용"]]
+# df to csv 만들기
+total_df.to_csv("c:/test/naver_news_page.csv",
+                index=False, encoding="utf-8-sig") #cp949, EUC-KR, utf-8, utf-8-sig
+
+print("total_df = ", total_df.shape)
+```
+
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221108&page=0
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (4, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221108&page=1
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (8, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221108&page=2
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (12, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221109&page=0
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (16, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221109&page=1
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (20, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221109&page=2
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (24, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221110&page=0
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (28, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221110&page=1
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (32, 6)
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221110&page=2
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+    total_df =  (36, 6)
+    total_df =  (36, 6)
+
+```python
+url = "https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001"
+news_date = pd.date_range("2022-11-08", periods=3)
+
+total_df = pd.DataFrame([],
+                      columns = ["이미지링크","기사링크","기사제목",
+                                 "기사내용", "날짜","page"])
+for wk_date in news_date:
+    for wk_page in (range(0,3)):
+        str_date = wk_date.strftime("%Y%m%d")
+        target_url = url + "&date=" + str_date + "&page=" + str(wk_page)
+        print(target_url)
+
+        get_dl = get_page(url)
+        news_page = page_to_items(get_dl)
+
+        news_page_df = pd.DataFrame(news_page,
+                              columns = ["이미지링크","기사링크","기사제목",
+                                         "기사내용"])
+        news_page_df["날짜"] = wk_date
+        news_page_df["page"] = wk_page
+
+        total_df = pd.concat([total_df, news_page_df], ignore_index=True)
+
+        total_df.to_csv("c:/jswoo/naver_news_page.csv",
+                         index=False, encoding="utf-8-sig") #cp949, EUC-KR, utf-8, utf-8-sig
+
+        print("new_page = ", total_df.shape)
+
+# 컬럼순서 바꾸기
+total_df = total_df[["날짜","page","이미지링크","기사링크","기사제목","기사내용"]]
+# df to csv 만들기
+total_df.to_csv("c:/test/naver_news_page.csv",
+                index=False, encoding="utf-8-sig") #cp949, EUC-KR, utf-8, utf-8-sig
+
+print("total_df = ", total_df.shape)
+```
+
+    https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=20221108&page=0
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+     No image or Content
+
+
+
+    ---------------------------------------------------------------------------
+
+    OSError                                   Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_55856\818229747.py in <module>
+         22         total_df = pd.concat([total_df, news_page_df], ignore_index=True)
+         23
+    ---> 24         total_df.to_csv("c:/jswoo/naver_news_page.csv",
+         25                          index=False, encoding="utf-8-sig") #cp949, EUC-KR, utf-8, utf-8-sig
+         26
+
+
+    ~\anaconda3\lib\site-packages\pandas\core\generic.py in to_csv(self, path_or_buf, sep, na_rep, float_format, columns, header, index, index_label, mode, encoding, compression, quoting, quotechar, line_terminator, chunksize, date_format, doublequote, escapechar, decimal, errors, storage_options)
+       3549         )
+       3550
+    -> 3551         return DataFrameRenderer(formatter).to_csv(
+       3552             path_or_buf,
+       3553             line_terminator=line_terminator,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\formats\format.py in to_csv(self, path_or_buf, encoding, sep, columns, index_label, mode, compression, quoting, quotechar, line_terminator, chunksize, date_format, doublequote, escapechar, errors, storage_options)
+       1178             formatter=self.fmt,
+       1179         )
+    -> 1180         csv_formatter.save()
+       1181
+       1182         if created_buffer:
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\formats\csvs.py in save(self)
+        239         """
+        240         # apply compression and byte/text conversion
+    --> 241         with get_handle(
+        242             self.filepath_or_buffer,
+        243             self.mode,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\common.py in get_handle(path_or_buf, mode, encoding, compression, memory_map, is_text, errors, storage_options)
+        692     # Only for write methods
+        693     if "r" not in mode and is_path:
+    --> 694         check_parent_directory(str(handle))
+        695
+        696     if compression:
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\common.py in check_parent_directory(path)
+        566     parent = Path(path).parent
+        567     if not parent.is_dir():
+    --> 568         raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+        569
+        570
+
+
+    OSError: Cannot save file into a non-existent directory: 'c:\jswoo'
+
+```python
+total_df.head(2)
 ```
 
 <div>
@@ -74,2238 +320,2348 @@ red_wine.head(3)
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
+      <th>이미지링크</th>
+      <th>기사링크</th>
+      <th>기사제목</th>
+      <th>기사내용</th>
+      <th>날짜</th>
+      <th>page</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>7.4</td>
-      <td>0.70</td>
-      <td>0.00</td>
-      <td>1.9</td>
-      <td>0.076</td>
-      <td>11.0</td>
-      <td>34.0</td>
-      <td>0.9978</td>
-      <td>3.51</td>
-      <td>0.56</td>
-      <td>9.4</td>
-      <td>5</td>
+      <td>https://imgnews.pstatic.net/image/origin/001/2...</td>
+      <td>https://n.news.naver.com/mnews/article/001/001...</td>
+      <td>[의회소식] 경남 아동급식 지원 조례안, 상임위 통과\n</td>
+      <td>경남도의회 문화복지위원회는 제400회 정례회 기간인 17일 상임위원회를 열어 국민의...</td>
+      <td>2022-11-08</td>
+      <td>0</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>7.8</td>
-      <td>0.88</td>
-      <td>0.00</td>
-      <td>2.6</td>
-      <td>0.098</td>
-      <td>25.0</td>
-      <td>67.0</td>
-      <td>0.9968</td>
-      <td>3.20</td>
-      <td>0.68</td>
-      <td>9.8</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>7.8</td>
-      <td>0.76</td>
-      <td>0.04</td>
-      <td>2.3</td>
-      <td>0.092</td>
-      <td>15.0</td>
-      <td>54.0</td>
-      <td>0.9970</td>
-      <td>3.26</td>
-      <td>0.65</td>
-      <td>9.8</td>
-      <td>5</td>
+      <td>https://imgnews.pstatic.net/image/origin/009/2...</td>
+      <td>https://n.news.naver.com/mnews/article/009/000...</td>
+      <td>국어 '기초대사량' 지문 진땀 … 수학 미적분 과목 까다로워\n</td>
+      <td>수능 난이도 분석 국어 난도 작년보다 떨어져 '언어와 매체' 체감난도 높을듯 수학 ...</td>
+      <td>2022-11-08</td>
+      <td>0</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 ```python
-white_wine.head(3)
+total_df["이미지링크"].str.len().max()
 ```
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
+    82
 
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
+### DB에 넣는다.
 
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>7.0</td>
-      <td>0.27</td>
-      <td>0.36</td>
-      <td>20.7</td>
-      <td>0.045</td>
-      <td>45.0</td>
-      <td>170.0</td>
-      <td>1.0010</td>
-      <td>3.00</td>
-      <td>0.45</td>
-      <td>8.8</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6.3</td>
-      <td>0.30</td>
-      <td>0.34</td>
-      <td>1.6</td>
-      <td>0.049</td>
-      <td>14.0</td>
-      <td>132.0</td>
-      <td>0.9940</td>
-      <td>3.30</td>
-      <td>0.49</td>
-      <td>9.5</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8.1</td>
-      <td>0.28</td>
-      <td>0.40</td>
-      <td>6.9</td>
-      <td>0.050</td>
-      <td>30.0</td>
-      <td>97.0</td>
-      <td>0.9951</td>
-      <td>3.26</td>
-      <td>0.44</td>
-      <td>10.1</td>
-      <td>6</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+1. DBMS명 -> newsdb
+2. TABLE명 -> naver_news
+   - news_id, news_date, news_page, news_img_link, news_link, news_title, news_content
+   - primary key -> news_id
+3. 실습
+   - Table을 생성한다
+   - total_df의 컬럼명을 table의 컬럼명과 일치 시킨다.
+   - df.to_sql() 실행한다.
 
 ```python
-red_wine["type"] = "red"
-white_wine["type"] = "white"
-
-wine_df = pd.concat([red_wine, white_wine])
-
-print(red_wine.shape, " ** ", white_wine.shape, " ** ", wine_df.shape)
+total_df.columns
 ```
 
-    (1599, 13)  **  (4898, 13)  **  (6497, 13)
+    Index(['이미지링크', '기사링크', '기사제목', '기사내용', '날짜', 'page'], dtype='object')
+
+1. table 생성
 
 ```python
-# row 1598 ~ 1603 데이터 확인
-wine_df.iloc[1596:1603,:]
+import pymysql
+
+db = pymysql.connect(host="localhost", port=3306,
+                     user="root", passwd = "pass",
+                     db = "newsdb", charset="utf8")
+
+cursor = db.cursor()
+
+sql_str = """
+    CREATE TABLE IF NOT EXISTS naver_news (
+           news_id         int(2),
+           news_date       date,
+           news_page       int(2),
+           news_img_link   varchar(100),
+           news_link       varchar(100),
+           news_title      varchar(100),
+           news_content    varchar(100),
+           primary key(news_id),
+           index secondary (news_date, news_page)
+    );
+"""
+
+cursor.execute(sql_str)
+
+db.commit()
 ```
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
+    ---------------------------------------------------------------------------
 
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
+    OperationalError                          Traceback (most recent call last)
 
-    .dataframe thead th {
-        text-align: right;
-    }
+    ~\AppData\Local\Temp\ipykernel_55856\3283575533.py in <module>
+          1 import pymysql
+          2
+    ----> 3 db = pymysql.connect(host="localhost", port=3306,
+          4                      user="root", passwd = "pass",
+          5                      db = "newsdb", charset="utf8")
 
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-      <th>type</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>1596</th>
-      <td>6.3</td>
-      <td>0.510</td>
-      <td>0.13</td>
-      <td>2.3</td>
-      <td>0.076</td>
-      <td>29.0</td>
-      <td>40.0</td>
-      <td>0.99574</td>
-      <td>3.42</td>
-      <td>0.75</td>
-      <td>11.0</td>
-      <td>6</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1597</th>
-      <td>5.9</td>
-      <td>0.645</td>
-      <td>0.12</td>
-      <td>2.0</td>
-      <td>0.075</td>
-      <td>32.0</td>
-      <td>44.0</td>
-      <td>0.99547</td>
-      <td>3.57</td>
-      <td>0.71</td>
-      <td>10.2</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1598</th>
-      <td>6.0</td>
-      <td>0.310</td>
-      <td>0.47</td>
-      <td>3.6</td>
-      <td>0.067</td>
-      <td>18.0</td>
-      <td>42.0</td>
-      <td>0.99549</td>
-      <td>3.39</td>
-      <td>0.66</td>
-      <td>11.0</td>
-      <td>6</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <td>7.0</td>
-      <td>0.270</td>
-      <td>0.36</td>
-      <td>20.7</td>
-      <td>0.045</td>
-      <td>45.0</td>
-      <td>170.0</td>
-      <td>1.00100</td>
-      <td>3.00</td>
-      <td>0.45</td>
-      <td>8.8</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6.3</td>
-      <td>0.300</td>
-      <td>0.34</td>
-      <td>1.6</td>
-      <td>0.049</td>
-      <td>14.0</td>
-      <td>132.0</td>
-      <td>0.99400</td>
-      <td>3.30</td>
-      <td>0.49</td>
-      <td>9.5</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8.1</td>
-      <td>0.280</td>
-      <td>0.40</td>
-      <td>6.9</td>
-      <td>0.050</td>
-      <td>30.0</td>
-      <td>97.0</td>
-      <td>0.99510</td>
-      <td>3.26</td>
-      <td>0.44</td>
-      <td>10.1</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>7.2</td>
-      <td>0.230</td>
-      <td>0.32</td>
-      <td>8.5</td>
-      <td>0.058</td>
-      <td>47.0</td>
-      <td>186.0</td>
-      <td>0.99560</td>
-      <td>3.19</td>
-      <td>0.40</td>
-      <td>9.9</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        351             self._sock = None
+        352         else:
+    --> 353             self.connect()
+        354
+        355     def __enter__(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        631
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+        635             if self.sql_mode is not None:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        919                 and plugin_name is not None
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+        923                 # send legacy handshake
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1016
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+       1020         return pkt
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        723             if self._result is not None and self._result.unbuffered_active is True:
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+        727
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        219         if DEBUG:
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+        223     def dump(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        141     if errorclass is None:
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
 
 ```python
-wine_df = pd.concat([red_wine, white_wine], ignore_index=True)
-wine_df.iloc[1596:1603,:]
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-      <th>type</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>1596</th>
-      <td>6.3</td>
-      <td>0.510</td>
-      <td>0.13</td>
-      <td>2.3</td>
-      <td>0.076</td>
-      <td>29.0</td>
-      <td>40.0</td>
-      <td>0.99574</td>
-      <td>3.42</td>
-      <td>0.75</td>
-      <td>11.0</td>
-      <td>6</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1597</th>
-      <td>5.9</td>
-      <td>0.645</td>
-      <td>0.12</td>
-      <td>2.0</td>
-      <td>0.075</td>
-      <td>32.0</td>
-      <td>44.0</td>
-      <td>0.99547</td>
-      <td>3.57</td>
-      <td>0.71</td>
-      <td>10.2</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1598</th>
-      <td>6.0</td>
-      <td>0.310</td>
-      <td>0.47</td>
-      <td>3.6</td>
-      <td>0.067</td>
-      <td>18.0</td>
-      <td>42.0</td>
-      <td>0.99549</td>
-      <td>3.39</td>
-      <td>0.66</td>
-      <td>11.0</td>
-      <td>6</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1599</th>
-      <td>7.0</td>
-      <td>0.270</td>
-      <td>0.36</td>
-      <td>20.7</td>
-      <td>0.045</td>
-      <td>45.0</td>
-      <td>170.0</td>
-      <td>1.00100</td>
-      <td>3.00</td>
-      <td>0.45</td>
-      <td>8.8</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>1600</th>
-      <td>6.3</td>
-      <td>0.300</td>
-      <td>0.34</td>
-      <td>1.6</td>
-      <td>0.049</td>
-      <td>14.0</td>
-      <td>132.0</td>
-      <td>0.99400</td>
-      <td>3.30</td>
-      <td>0.49</td>
-      <td>9.5</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>1601</th>
-      <td>8.1</td>
-      <td>0.280</td>
-      <td>0.40</td>
-      <td>6.9</td>
-      <td>0.050</td>
-      <td>30.0</td>
-      <td>97.0</td>
-      <td>0.99510</td>
-      <td>3.26</td>
-      <td>0.44</td>
-      <td>10.1</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>1602</th>
-      <td>7.2</td>
-      <td>0.230</td>
-      <td>0.32</td>
-      <td>8.5</td>
-      <td>0.058</td>
-      <td>47.0</td>
-      <td>186.0</td>
-      <td>0.99560</td>
-      <td>3.19</td>
-      <td>0.40</td>
-      <td>9.9</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-new_df = red_wine.append(white_wine)
-new_df.shape
-```
-
-    C:\Users\ehdal\AppData\Local\Temp\ipykernel_136404\3978243007.py:1: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
-      new_df = red_wine.append(white_wine)
-
-
-
-
-
-    (6497, 13)
-
-### ( 실습 2)
-
-2. wine_df 필수 탐색
-   - 처음 5건의 데이터는 어떻게 생겼나?
-   - 마지막 3건의 데이터는 어떻게 생겼나?
-   - 컬럼 이름은?
-   - 몇행 몇열로 구성되어 있나
-   - 전체 컬럼 구성은?
-   - 결측치는?
-   - 품질별로 몇건씩 구성되어 있나?
-     - 전체는?
-     - red는?
-     - wihte는?
-   - 요약 통계량은?
-
-```python
-wine_df.head(5)
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-      <th>type</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>7.4</td>
-      <td>0.70</td>
-      <td>0.00</td>
-      <td>1.9</td>
-      <td>0.076</td>
-      <td>11.0</td>
-      <td>34.0</td>
-      <td>0.9978</td>
-      <td>3.51</td>
-      <td>0.56</td>
-      <td>9.4</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>7.8</td>
-      <td>0.88</td>
-      <td>0.00</td>
-      <td>2.6</td>
-      <td>0.098</td>
-      <td>25.0</td>
-      <td>67.0</td>
-      <td>0.9968</td>
-      <td>3.20</td>
-      <td>0.68</td>
-      <td>9.8</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>7.8</td>
-      <td>0.76</td>
-      <td>0.04</td>
-      <td>2.3</td>
-      <td>0.092</td>
-      <td>15.0</td>
-      <td>54.0</td>
-      <td>0.9970</td>
-      <td>3.26</td>
-      <td>0.65</td>
-      <td>9.8</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>11.2</td>
-      <td>0.28</td>
-      <td>0.56</td>
-      <td>1.9</td>
-      <td>0.075</td>
-      <td>17.0</td>
-      <td>60.0</td>
-      <td>0.9980</td>
-      <td>3.16</td>
-      <td>0.58</td>
-      <td>9.8</td>
-      <td>6</td>
-      <td>red</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>7.4</td>
-      <td>0.70</td>
-      <td>0.00</td>
-      <td>1.9</td>
-      <td>0.076</td>
-      <td>11.0</td>
-      <td>34.0</td>
-      <td>0.9978</td>
-      <td>3.51</td>
-      <td>0.56</td>
-      <td>9.4</td>
-      <td>5</td>
-      <td>red</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-wine_df.tail(3)
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-      <th>type</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>6494</th>
-      <td>6.5</td>
-      <td>0.24</td>
-      <td>0.19</td>
-      <td>1.2</td>
-      <td>0.041</td>
-      <td>30.0</td>
-      <td>111.0</td>
-      <td>0.99254</td>
-      <td>2.99</td>
-      <td>0.46</td>
-      <td>9.4</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>6495</th>
-      <td>5.5</td>
-      <td>0.29</td>
-      <td>0.30</td>
-      <td>1.1</td>
-      <td>0.022</td>
-      <td>20.0</td>
-      <td>110.0</td>
-      <td>0.98869</td>
-      <td>3.34</td>
-      <td>0.38</td>
-      <td>12.8</td>
-      <td>7</td>
-      <td>white</td>
-    </tr>
-    <tr>
-      <th>6496</th>
-      <td>6.0</td>
-      <td>0.21</td>
-      <td>0.38</td>
-      <td>0.8</td>
-      <td>0.020</td>
-      <td>22.0</td>
-      <td>98.0</td>
-      <td>0.98941</td>
-      <td>3.26</td>
-      <td>0.32</td>
-      <td>11.8</td>
-      <td>6</td>
-      <td>white</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-wine_df.columns
-```
-
-    Index(['fixed acidity', 'volatile acidity', 'citric acid', 'residual sugar',
-           'chlorides', 'free sulfur dioxide', 'total sulfur dioxide', 'density',
-           'pH', 'sulphates', 'alcohol', 'quality', 'type'],
-          dtype='object')
-
-```python
-wine_df.shape
-```
-
-    (6497, 13)
-
-```python
-wine_df.info()
-```
-
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 6497 entries, 0 to 6496
-    Data columns (total 13 columns):
-     #   Column                Non-Null Count  Dtype
-    ---  ------                --------------  -----
-     0   fixed acidity         6497 non-null   float64
-     1   volatile acidity      6497 non-null   float64
-     2   citric acid           6497 non-null   float64
-     3   residual sugar        6497 non-null   float64
-     4   chlorides             6497 non-null   float64
-     5   free sulfur dioxide   6497 non-null   float64
-     6   total sulfur dioxide  6497 non-null   float64
-     7   density               6497 non-null   float64
-     8   pH                    6497 non-null   float64
-     9   sulphates             6497 non-null   float64
-     10  alcohol               6497 non-null   float64
-     11  quality               6497 non-null   int64
-     12  type                  6497 non-null   object
-    dtypes: float64(11), int64(1), object(1)
-    memory usage: 660.0+ KB
-
-```python
-wine_df.isnull().sum().sum()
-```
-
-    0
-
-```python
-wine_df["quality"].value_counts().sort_index()
-```
-
-    3      30
-    4     216
-    5    2138
-    6    2836
-    7    1079
-    8     193
-    9       5
-    Name: quality, dtype: int64
-
-```python
-wine_df[wine_df["type"] == "red"]["quality"].value_counts().sort_index()
-```
-
-    3     10
-    4     53
-    5    681
-    6    638
-    7    199
-    8     18
-    Name: quality, dtype: int64
-
-```python
-wine_df[wine_df["type"] == "white"]["quality"].value_counts().sort_index()
-```
-
-    3      20
-    4     163
-    5    1457
-    6    2198
-    7     880
-    8     175
-    9       5
-    Name: quality, dtype: int64
-
-```python
-wine_df.query("type == 'white'")["quality"].value_counts().sort_index()
-```
-
-    3      20
-    4     163
-    5    1457
-    6    2198
-    7     880
-    8     175
-    9       5
-    Name: quality, dtype: int64
-
-```python
-str_expr = "type == 'white'"
-wine_df.query(str_expr)["quality"].value_counts().sort_index()
-```
-
-    3      20
-    4     163
-    5    1457
-    6    2198
-    7     880
-    8     175
-    9       5
-    Name: quality, dtype: int64
-
-```python
-wine_df.describe()
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>fixed acidity</th>
-      <th>volatile acidity</th>
-      <th>citric acid</th>
-      <th>residual sugar</th>
-      <th>chlorides</th>
-      <th>free sulfur dioxide</th>
-      <th>total sulfur dioxide</th>
-      <th>density</th>
-      <th>pH</th>
-      <th>sulphates</th>
-      <th>alcohol</th>
-      <th>quality</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>count</th>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-      <td>6497.000000</td>
-    </tr>
-    <tr>
-      <th>mean</th>
-      <td>7.215307</td>
-      <td>0.339666</td>
-      <td>0.318633</td>
-      <td>5.443235</td>
-      <td>0.056034</td>
-      <td>30.525319</td>
-      <td>115.744574</td>
-      <td>0.994697</td>
-      <td>3.218501</td>
-      <td>0.531268</td>
-      <td>10.491801</td>
-      <td>5.818378</td>
-    </tr>
-    <tr>
-      <th>std</th>
-      <td>1.296434</td>
-      <td>0.164636</td>
-      <td>0.145318</td>
-      <td>4.757804</td>
-      <td>0.035034</td>
-      <td>17.749400</td>
-      <td>56.521855</td>
-      <td>0.002999</td>
-      <td>0.160787</td>
-      <td>0.148806</td>
-      <td>1.192712</td>
-      <td>0.873255</td>
-    </tr>
-    <tr>
-      <th>min</th>
-      <td>3.800000</td>
-      <td>0.080000</td>
-      <td>0.000000</td>
-      <td>0.600000</td>
-      <td>0.009000</td>
-      <td>1.000000</td>
-      <td>6.000000</td>
-      <td>0.987110</td>
-      <td>2.720000</td>
-      <td>0.220000</td>
-      <td>8.000000</td>
-      <td>3.000000</td>
-    </tr>
-    <tr>
-      <th>25%</th>
-      <td>6.400000</td>
-      <td>0.230000</td>
-      <td>0.250000</td>
-      <td>1.800000</td>
-      <td>0.038000</td>
-      <td>17.000000</td>
-      <td>77.000000</td>
-      <td>0.992340</td>
-      <td>3.110000</td>
-      <td>0.430000</td>
-      <td>9.500000</td>
-      <td>5.000000</td>
-    </tr>
-    <tr>
-      <th>50%</th>
-      <td>7.000000</td>
-      <td>0.290000</td>
-      <td>0.310000</td>
-      <td>3.000000</td>
-      <td>0.047000</td>
-      <td>29.000000</td>
-      <td>118.000000</td>
-      <td>0.994890</td>
-      <td>3.210000</td>
-      <td>0.510000</td>
-      <td>10.300000</td>
-      <td>6.000000</td>
-    </tr>
-    <tr>
-      <th>75%</th>
-      <td>7.700000</td>
-      <td>0.400000</td>
-      <td>0.390000</td>
-      <td>8.100000</td>
-      <td>0.065000</td>
-      <td>41.000000</td>
-      <td>156.000000</td>
-      <td>0.996990</td>
-      <td>3.320000</td>
-      <td>0.600000</td>
-      <td>11.300000</td>
-      <td>6.000000</td>
-    </tr>
-    <tr>
-      <th>max</th>
-      <td>15.900000</td>
-      <td>1.580000</td>
-      <td>1.660000</td>
-      <td>65.800000</td>
-      <td>0.611000</td>
-      <td>289.000000</td>
-      <td>440.000000</td>
-      <td>1.038980</td>
-      <td>4.010000</td>
-      <td>2.000000</td>
-      <td>14.900000</td>
-      <td>9.000000</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-wine_df.info()
-```
-
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 6497 entries, 0 to 6496
-    Data columns (total 13 columns):
-     #   Column                Non-Null Count  Dtype
-    ---  ------                --------------  -----
-     0   fixed acidity         6497 non-null   float64
-     1   volatile acidity      6497 non-null   float64
-     2   citric acid           6497 non-null   float64
-     3   residual sugar        6497 non-null   float64
-     4   chlorides             6497 non-null   float64
-     5   free sulfur dioxide   6497 non-null   float64
-     6   total sulfur dioxide  6497 non-null   float64
-     7   density               6497 non-null   float64
-     8   pH                    6497 non-null   float64
-     9   sulphates             6497 non-null   float64
-     10  alcohol               6497 non-null   float64
-     11  quality               6497 non-null   int64
-     12  type                  6497 non-null   object
-    dtypes: float64(11), int64(1), object(1)
-    memory usage: 660.0+ KB
-
-### ( 실습 히스토그램 histogram 그리기 )
-
-1. 도수분포표를 그래프로
-   - 가로축은 계급
-   - 세로축은 도수
-2. 컬럼 -> "fixed acidity"
-
-```python
-wine_df["fixed acidity"].describe()
-```
-
-    count    6497.000000
-    mean        7.215307
-    std         1.296434
-    min         3.800000
-    25%         6.400000
-    50%         7.000000
-    75%         7.700000
-    max        15.900000
-    Name: fixed acidity, dtype: float64
-
-```python
-import matplotlib.pyplot as plt
-
-plt.hist(wine_df["fixed acidity"])
-plt.show()
-```
-
-![png](output_24_0.png)
-
-```python
-plt.hist(wine_df["fixed acidity"],alpha=0.4, bins=10, rwidth=0.3, color="red")
-plt.show()
-```
-
-![png](output_25_0.png)
-
-```python
-def hist_chart(feature):
-    plt.hist(wine_df[feature],alpha=0.4,
-             bins=20, rwidth=0.1, color="red")
-    plt.show()
+news_df = total_df.copy()
 ```
 
 ```python
-hist_chart("fixed acidity")
+news_df["news_content"].str.len().max()
 ```
 
-![png](output_27_0.png)
-
-### ( 산점도, Scatter plot )
-
-1. x="density", y="chlorides"
+#2. 컬럼명과 순서 맞추기
 
 ```python
-plt.scatter(x="density",y="chlorides", data=wine_df)
+news_df = news_df.reset_index()
+news_df.columns = ["news_id","news_date","news_page","news_img_link",
+                    "news_link","news_title","news_content"]
+news_df.head(2)
 ```
 
-    <matplotlib.collections.PathCollection at 0x287507067c0>
-
-![png](output_29_1.png)
+3. df.to_sql() 실행
 
 ```python
-wine_df.plot.scatter(x="density",y="chlorides", grid=True, color="green")
-```
+from sqlalchemy import create_engine
 
-    <AxesSubplot:xlabel='density', ylabel='chlorides'>
+# MariaDB Connector using pymysql
+pymysql.install_as_MySQLdb()
 
-![png](output_30_1.png)
+import MySQLdb
 
-#### 그림 깨지는데 해결 방법을 모르겠네요....
+engine = create_engine("mysql://root:pass@127.0.0.1/newsdb",encoding="utf-8")
 
-#### 2. matplotlib\_시각화
-
-# https://matplotlib.org/stable/gallery/
-
-```python
-import matplotlib.pyplot as plt
-
-# Pie chart, where the slices will be ordered and plotted counter-clockwise:
-
-# 외부 화일에서 데이터를 읽어서 df
-# 데이터로 조작해서
-
-labels = 'Frogs', 'Hogs', 'Dogs', 'Logs'
-sizes = [15, 30, 45, 10]
-
-explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
-
-fig1, ax1 = plt.subplots()
-ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%',
-        shadow=True, startangle=90)
-ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-
-plt.show()
-```
-
-![png](output_1_0.png)
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-
-
-# Fixing random state for reproducibility
-np.random.seed(19680801)
-
-# Compute areas and colors
-N = 150
-r = 2 * np.random.rand(N)
-theta = 2 * np.pi * np.random.rand(N)
-area = 200 * r**2
-colors = theta
-
-fig = plt.figure()
-ax = fig.add_subplot(projection='polar')
-c = ax.scatter(theta, r, c=colors, s=area, cmap='hsv', alpha=0.75)
-```
-
-![png](output_2_0.png)
-
-```python
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+news_df.to_sql(name="naver_news",con=engine,
+               if_exists="append",index=False)
 ```
 
 ```python
-x = [1,2,3,4]
-y = [1,4,2,3]
-
-plt.plot(x,y)
-plt.show()
+### ( 이미지 다운로드 )
 ```
 
-![png](output_4_0.png)
-
 ```python
-year = [1950, 1960, 1970, 1980, 1990, 2000]
-pop =[32, 38, 42, 47, 49, 51]
-plt.plot(year, pop)
+import os
+def createFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print ('Error: Creating directory. ' +  directory)
+createFolder('c:/jswoo/img_down')
 ```
 
-    [<matplotlib.lines.Line2D at 0x24643c6f3a0>]
-
-![png](output_5_1.png)
-
 ```python
-import matplotlib.pyplot as plt
+import urllib.request
+for row in range(0,len(total_df)):
+    img_file = total_df.iloc[row,2].split("?")
+    img_name = img_file[0].split("/")[-1]
+    down_filename = "c:/jswoo/img_down/" + img_name   # ./img_down/132334.jpg
 
-t = [2005,2006,2007,2008,2009,
-      2010,2011,2012,2013,2014]
+    # 이미지 링크로 사진 다운 받기
+    url = img_file[0]
+    urllib.request.urlretrieve(url, down_filename)
 
-temperature = [11.7, 11.5, 12.1, 12.5, 12.6,
-               10.8, 11, 12.2, 11.6, 13.1]
-dewpoint = [3, 4, 4, 3, 2, 4, 3, 3, 2, 3]
+    print("down = ", url )
+print("*"*30)
 
-plt.plot(t, temperature, "red")
-plt.plot(t, dewpoint, "blue")
-plt.xlabel("Date")
-plt.title("Temperatuer & Dew Point")
+print(" 완료!!! ")
 ```
 
-    Text(0.5, 1.0, 'Temperatuer & Dew Point')
+### ( 웹 수집할때 )
 
-![png](output_6_1.png)
-
-```python
-import matplotlib.pyplot as plt
-t = [2005,2006,2007,2008,2009,
-      2010,2011,2012,2013,2014]
-temperature = [11.7, 11.5, 12.1, 12.5, 12.6,
-                      10.8, 11, 12.2, 11.6, 13.1]
-dewpoint = [3, 4, 4, 3, 2, 4, 3, 3, 2, 3]
-
-plt.axes([0.05, 0.05, 0.425, 0.9])
-plt.plot(t, temperature, "red")
-plt.xlabel("Date")
-plt.title("Temperature")
-
-plt.axes([0.525, 0.05, 0.425, 0.9])
-plt.plot(t, dewpoint, "blue")
-plt.xlabel("Data")
-plt.title("Dew Point")
-```
-
-    Text(0.5, 1.0, 'Dew Point')
-
-![png](output_7_1.png)
+1. table 태그로 구성시 ( 반드시는 안님)
 
 ```python
-import matplotlib.pyplot as plt
-t = [2005,2006,2007,2008,2009,
-      2010,2011,2012,2013,2014]
-temperature = [11.7, 11.5, 12.1, 12.5, 12.6,
-                      10.8, 11, 12.2, 11.6, 13.1]
-dewpoint = [3, 4, 4, 3, 2, 4, 3, 3, 2, 3]
+url1 = "https://movie.naver.com/movie/point/af/list.naver?&page=1"
 
-i =1
-plt.subplot(2,1,i)
-plt.plot(t, temperature, "red")
-plt.xlabel("Date")
-plt.title("Temp")
+read_html = pd.read_html(url1)
+df = read_html[0]
 
-j = 2
-plt.subplot(2,1,j)
-plt.plot(t, dewpoint, "blue")
-plt.xlabel("Date")
-plt.title("Dew Point")
-
-plt.tight_layout()
-```
-
-![png](output_8_0.png)
-
-```python
-import matplotlib.pyplot as plt
-t = [2005,2006,2007,2008,2009,
-      2010,2011,2012,2013,2014]
-temperature = [11.7, 11.5, 12.1, 12.5, 12.6,
-                      10.8, 11, 12.2, 11.6, 13.1]
-dewpoint = [3, 4, 4, 3, 2, 4, 3, 3, 2, 3]
-
-i =1
-plt.subplot(2,2,i)
-plt.plot(t, temperature, "red")
-plt.xlabel("Date")
-plt.title("Temp")
-
-j = 2
-plt.subplot(2,2,j)
-plt.plot(t, dewpoint, "blue")
-plt.xlabel("Date")
-plt.title("Dew Point")
-
-plt.tight_layout()
-```
-
-![png](output_9_0.png)
-
-```python
-x = list(range(0,11)); x
-plt.plot(x)
-plt.ylabel("Y축")
-```
-
-    Text(0, 0.5, 'Y축')
-
-
-
-    C:\Users\ehdal\anaconda3\lib\site-packages\IPython\core\pylabtools.py:151: UserWarning: Glyph 52629 (\N{HANGUL SYLLABLE CUG}) missing from current font.
-      fig.canvas.print_figure(bytes_io, **kw)
-
-![png](output_10_2.png)
-
-```python
-import matplotlib.pyplot as plt
-import pandas as pd
-
-df = pd.DataFrame({"a":[2005,2006,2007,2008,2009,2010,2011,2012,2013,2014],
-                   "b":[11.7, 11.5, 12.1, 12.5, 12.6,10.8, 11, 12.2, 11.6, 13.1],
-                   "c":[3, 4, 4, 3, 2, 4, 3, 3, 2, 3]})
 df.head(3)
 ```
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>a</th>
-      <th>b</th>
-      <th>c</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>2005</td>
-      <td>11.7</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2006</td>
-      <td>11.5</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2007</td>
-      <td>12.1</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
 ```python
-plt.subplot(2,1,1)
-plt.plot(df["a"],df["b"], "red")
-plt.xlabel("Date")
-plt.title("Temp")
 
-plt.subplot(2,1,2)
-plt.plot(df["a"],df["c"], "blue")
-plt.xlabel("Date")
-plt.title("Dew Point")
-
-plt.tight_layout()
 ```
 
-![png](output_12_0.png)
+#### 2. 데이터수집 selenium
 
 ```python
-df.to_csv("c:/test/temp.csv")
+# https://selenium-python.readthedocs.io/getting-started.html
+```
+
+### ( Selenium 시작 하기 )
+
+1. selenium 설치 -> pip install selenium
+2. 브라우저에 맞는 드라이브 다운로드
+   - 107ver -> chromedriver.exe
+   - c:/test/
+
+```python
+from selenium.webdriver import Chrome
+driver = Chrome("c:/test/chromedriver.exe")
+```
+
+    C:\Users\ehdal\AppData\Local\Temp\ipykernel_56996\3525337058.py:2: DeprecationWarning: executable_path has been deprecated, please pass in a Service object
+      driver = Chrome("c:/test/chromedriver.exe")
+
+```python
+url = "https://selenium.dev"
+driver.get(url)
 ```
 
 ```python
-df = pd.read_csv("c:/test/temp.csv")
-
-plt.subplot(2,1,1)
-plt.plot(df["a"],df["b"], "red")
-plt.xlabel("Date")
-plt.title("Temp")
-
-plt.subplot(2,1,2)
-plt.plot(df["a"],df["c"], "blue")
-plt.xlabel("Date")
-plt.title("Dew Point")
-
-plt.tight_layout()
+driver.current_url
 ```
 
-![png](output_14_0.png)
+    'https://www.selenium.dev/'
 
 ```python
-np.random.seed(13)  # seed the random number generator.
-
-data = {'a': np.arange(50),
-        'c': np.random.randint(0, 50, 50),
-        'd': np.random.randn(50)}
-data['b'] = data['a'] + 10 * np.random.randn(50)
-data['d'] = np.abs(data['d']) * 100
-
-fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
-ax.scatter('a', 'b', c='c', s='d', data=data)
-ax.set_xlabel('entry a')
-ax.set_ylabel('entry b');
-```
-
-![png](output_15_0.png)
-
-```python
-np.random.seed(13)  # seed the random number generator.
-
-data = {'a': np.arange(50),
-        'c': np.random.randint(0, 50, 50),
-        'd': np.random.randn(50)}
-data['b'] = data['a'] + 10 * np.random.randn(50)
-data['d'] = np.abs(data['d']) * 100
-
-fig, ax = plt.subplots(figsize=(5, 2.7))
-ax.scatter('a', 'b', c='c', s='d', data=data)
-ax.set_xlabel('entry a')
-ax.set_ylabel('entry b');
-```
-
-![png](output_16_0.png)
-
-```python
-mu, sigma = 115, 15
-x = mu + sigma * np.random.randn(10000)
-fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
-# the histogram of the data
-n, bins, patches = ax.hist(x, 50, density=True, facecolor='C0', alpha=0.2)
-
-ax.set_xlabel('Length [cm]')
-ax.set_ylabel('Probability')
-ax.set_title('Aardvark lengths\n (not really)')
-ax.text(75, .025, r'$\mu=115,\ \sigma=15$')
-ax.axis([55, 175, 0, 0.03])
-ax.grid(True);
-```
-
-![png](output_17_0.png)
-
-```python
-import matplotlib as mpl
-
-fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
-dates = np.arange(np.datetime64('2021-11-15'), np.datetime64('2021-12-25'),
-                  np.timedelta64(1, 'h'))
-data = np.cumsum(np.random.randn(len(dates)))
-ax.plot(dates, data)
-
-cdf = mpl.dates.ConciseDateFormatter(ax.xaxis.get_major_locator())
-ax.xaxis.set_major_formatter(cdf);
-```
-
-![png](output_18_0.png)
-
-```python
-fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
-dates = np.arange(np.datetime64('2021-11-15'), np.datetime64('2021-12-25'),
-                  np.timedelta64(1, 'h'))
-data = np.cumsum(np.random.randn(len(dates)))
-ax.plot(dates, data)
-```
-
-    [<matplotlib.lines.Line2D at 0x2464568eeb0>]
-
-![png](output_19_1.png)
-
-```python
-import matplotlib.pyplot as plt
-
-# Pie chart, where the slices will be ordered and plotted counter-clockwise:
-labels = 'Frogs', 'Hogs', 'Dogs', 'Logs'
-sizes = [15, 30, 45, 10]
-explode = (0, 0, 0.3, 0.5)  # only "explode" the 2nd slice (i.e. 'Hogs')
-
-plt.pie(sizes, # 값
-        labels=labels, # 분류, 구분, class
-        autopct='%1.1f%%', # 값 표시,
-        explode=(0.3, 0, 0, 0),
-        shadow=True,
-        startangle= 90 )
-plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-plt.show()
-```
-
-![png](output_20_0.png)
-
-### (실습. Piechart 그리기 )
-
-1. iris 데이터 셋
-   - import seaborn as sns
-   - iris = sns.load_dataset("iris")
-2. species의분포 파이차트 그리기
-   - 분류별 카운트
-
-```python
-import seaborn as sns
-iris = sns.load_dataset("iris")
-
-iris_index = iris["species"].value_counts().index
-iris_values = iris["species"].value_counts().values
-
-labels = iris_index # 품종구분
-sizes = iris_values # 품종별 데이터
-
-plt.pie(sizes, # 값
-        labels=labels,
-        autopct='%1.1f%%', # 값 표시,
-        shadow=True,
-        explode = (0, 0.1, 0),
-        startangle= 90 )
-```
-
-    ([<matplotlib.patches.Wedge at 0x246457594f0>,
-      <matplotlib.patches.Wedge at 0x24645759e80>,
-      <matplotlib.patches.Wedge at 0x24645767850>],
-     [Text(-0.9526279613277876, 0.5499999702695114, 'setosa'),
-      Text(1.1235210819632121e-07, -1.199999999999995, 'versicolor'),
-      Text(0.9526278583383436, 0.5500001486524351, 'virginica')],
-     [Text(-0.5196152516333387, 0.29999998378336984, '33.3%'),
-      Text(6.553872978118737e-08, -0.699999999999997, '33.3%'),
-      Text(0.5196151954572783, 0.3000000810831464, '33.3%')])
-
-![png](output_22_1.png)
-
-labels ... 품종구분 ( setosa, versicolor, virginica )
-sizes .. 품종별 데이터 [50, 50, 50]
-... value_counts()
-
-```python
-# 데이터 셋
-
-import seaborn as sns
-iris = sns.load_dataset("iris")
-iris.head(3)
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>sepal_length</th>
-      <th>sepal_width</th>
-      <th>petal_length</th>
-      <th>petal_width</th>
-      <th>species</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>5.1</td>
-      <td>3.5</td>
-      <td>1.4</td>
-      <td>0.2</td>
-      <td>setosa</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>4.9</td>
-      <td>3.0</td>
-      <td>1.4</td>
-      <td>0.2</td>
-      <td>setosa</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>4.7</td>
-      <td>3.2</td>
-      <td>1.3</td>
-      <td>0.2</td>
-      <td>setosa</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-iris["species"].value_counts()
-```
-
-    setosa        50
-    versicolor    50
-    virginica     50
-    Name: species, dtype: int64
-
-```python
-iris_index = iris["species"].value_counts().index
-iris_values = iris["species"].value_counts().values
-print(iris_index, iris_values)
-```
-
-    Index(['setosa', 'versicolor', 'virginica'], dtype='object') [50 50 50]
-
-```python
-import seaborn as sns
-iris = sns.load_dataset("iris")
-
-iris_index = iris["species"].value_counts().index
-iris_values = iris["species"].value_counts().values
-
-plt.pie(iris_values, # 값
-        labels=iris_index,
-        autopct='%1.1f%%', # 값 표시,
-        shadow=True,
-        explode = (0, 0.2, 0.1),
-        startangle= 90 )
-plt.show()
-```
-
-![png](output_27_0.png)
-
-### ( 실습. pie chart 그리기 )
-
-1. tips 데이터셋
-2. 데이터중 분류형 변수 각각의 파이차트를 그리기
-
-```python
-tips = sns.load_dataset("tips")
-tips.head(3)
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>total_bill</th>
-      <th>tip</th>
-      <th>sex</th>
-      <th>smoker</th>
-      <th>day</th>
-      <th>time</th>
-      <th>size</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>16.99</td>
-      <td>1.01</td>
-      <td>Female</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>10.34</td>
-      <td>1.66</td>
-      <td>Male</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>21.01</td>
-      <td>3.50</td>
-      <td>Male</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>3</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-def chart_pie(feature):
-
-    labels = tips[feature].value_counts().index
-    values = tips[feature].value_counts().values
-
-    plt.pie(values, # 값
-            labels=labels,
-            autopct='%1.1f%%', # 값 표시,
-            shadow=True,
-            startangle= 90 )
-    plt.show()
+#dir(driver)
 ```
 
 ```python
-chart_pie("smoker")
-```
-
-![png](output_31_0.png)
-
-```python
-chart_pie("sex")
-```
-
-![png](output_32_0.png)
-
-```python
-chart_pie("day")
-```
-
-![png](output_33_0.png)
-
-```python
-chart_pie("time")
-```
-
-![png](output_34_0.png)
-
-```python
-chart_pie("size")
-```
-
-![png](output_35_0.png)
-
-# 8개 판다스 명령..
-
-```python
-tips.head(3)
-```
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>total_bill</th>
-      <th>tip</th>
-      <th>sex</th>
-      <th>smoker</th>
-      <th>day</th>
-      <th>time</th>
-      <th>size</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>16.99</td>
-      <td>1.01</td>
-      <td>Female</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>10.34</td>
-      <td>1.66</td>
-      <td>Male</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>21.01</td>
-      <td>3.50</td>
-      <td>Male</td>
-      <td>No</td>
-      <td>Sun</td>
-      <td>Dinner</td>
-      <td>3</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-```python
-tips.info()
-```
-
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 244 entries, 0 to 243
-    Data columns (total 7 columns):
-     #   Column      Non-Null Count  Dtype
-    ---  ------      --------------  -----
-     0   total_bill  244 non-null    float64
-     1   tip         244 non-null    float64
-     2   sex         244 non-null    category
-     3   smoker      244 non-null    category
-     4   day         244 non-null    category
-     5   time        244 non-null    category
-     6   size        244 non-null    int64
-    dtypes: category(4), float64(2), int64(1)
-    memory usage: 7.4 KB
-
-```python
-# 1. 하나의 변수로 파이 그래프 그리기
-index = tips["smoker"].value_counts().index
-values = tips["smoker"].value_counts().values
-
-plt.pie(values, # 값
-        labels=index,
-        autopct='%1.1f%%', # 값 표시,
-        shadow=True,
-        startangle= 90 )
-plt.show()
-```
-
-![png](output_39_0.png)
-
-```python
-tips.columns
-```
-
-    Index(['total_bill', 'tip', 'sex', 'smoker', 'day', 'time', 'size'], dtype='object')
-
-```python
-tips = sns.load_dataset("tips")
-
-def pie_chart(feature):
-    index = tips[feature].value_counts().index
-    values = tips[feature].value_counts().values
-
-    plt.pie(values, # 값
-            labels=index,
-            autopct='%1.1f%%', # 값 표시,
-            shadow=True,
-            startangle= 90 )
-    plt.show()
+driver.get("http://www.python.org")
 ```
 
 ```python
-pie_chart("day") # sex, smoker, day, time, size
-```
-
-![png](output_42_0.png)
-
-```python
-pie_chart("time") # "size"
-```
-
-![png](output_43_0.png)
-
-```python
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-tips = sns.load_dataset("tips")
-
-def pie_chart1(ax, feature):
-    index = tips[feature].value_counts().index
-    values = tips[feature].value_counts().values
-
-    ax.pie(values, # 값
-            labels=index,
-            autopct='%1.1f%%', # 값 표시,
-            shadow=True,
-            startangle= 90 )
-    plt.show()
+from selenium.webdriver.common.by import By
+elem = driver.find_element(By.NAME, "q")
 ```
 
 ```python
-fig, ax = plt.subplots()
-pie_chart1(ax,"day")
-```
-
-![png](output_45_0.png)
-
-```python
-fig, ax = plt.subplots(2,3)
-pie_chart1(ax[1][0],"day")
-```
-
-![png](output_46_0.png)
-
-#### 시각화쪽 사진 마크업 언어 안깨지게 하는법 조만간 수정
-
-#### 3. numpy_quickstart
-
-```python
-# https://numpy.org/doc/stable/user/quickstart.html
+elem.clear()
 ```
 
 ```python
-import numpy as np
+elem.send_keys("pycon")
+elem.send_keys(Keys.RETURN)
+```
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_56996\3608860890.py in <module>
+          1 elem.send_keys("pycon")
+    ----> 2 elem.send_keys(Keys.RETURN)
+
+
+    NameError: name 'Keys' is not defined
+
+```python
+from selenium.webdriver.common.keys import Keys
+elem.send_keys(Keys.RETURN)
+```
+
+```python
+my_id = "jswoo100@empas.com"
+my_pw = "akrhr701!@!@"
+```
+
+### ( nate login )
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+driver = webdriver.Chrome("c:/test/chromedriver.exe")
+
+url = "https://www.nate.com/"
+
+driver.get(url)
+```
+
+    C:\Users\ehdal\AppData\Local\Temp\ipykernel_56996\678002887.py:5: DeprecationWarning: executable_path has been deprecated, please pass in a Service object
+      driver = webdriver.Chrome("c:/test/chromedriver.exe")
+
+```python
+elem = driver.find_element(By.NAME, "ID")
+elem.send_keys(my_id)
+```
+
+```python
+elem = driver.find_element(By.NAME, "PASSDM")
+elem.send_keys(my_pw, Keys.ENTER)
+```
+
+```python
+elem.clear()
+elem = driver.find_element(By.ID, "ID")
+elem.send_keys(my_id)
+```
+
+    ---------------------------------------------------------------------------
+
+    StaleElementReferenceException            Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_56996\2995432120.py in <module>
+    ----> 1 elem.clear()
+          2 elem = driver.find_element(By.ID, "ID")
+          3 elem.send_keys(my_id)
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in clear(self)
+        114     def clear(self) -> None:
+        115         """Clears the text if it's a text entry element."""
+    --> 116         self._execute(Command.CLEAR_ELEMENT)
+        117
+        118     def get_property(self, name) -> str | bool | WebElement | dict:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in _execute(self, command, params)
+        408             params = {}
+        409         params["id"] = self._id
+    --> 410         return self._parent.execute(command, params)
+        411
+        412     def find_element(self, by=By.ID, value=None) -> WebElement:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webdriver.py in execute(self, driver_command, params)
+        442         response = self.command_executor.execute(driver_command, params)
+        443         if response:
+    --> 444             self.error_handler.check_response(response)
+        445             response["value"] = self._unwrap_value(response.get("value", None))
+        446             return response
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\errorhandler.py in check_response(self, response)
+        247                 alert_text = value["alert"].get("text")
+        248             raise exception_class(message, screen, stacktrace, alert_text)  # type: ignore[call-arg]  # mypy is not smart enough here
+    --> 249         raise exception_class(message, screen, stacktrace)
+
+
+    StaleElementReferenceException: Message: stale element reference: element is not attached to the page document
+      (Session info: chrome=107.0.5304.107)
+    Stacktrace:
+    Backtrace:
+    	Ordinal0 [0x0064ACD3+2075859]
+    	Ordinal0 [0x005DEE61+1633889]
+    	Ordinal0 [0x004DB7BD+571325]
+    	Ordinal0 [0x004DE374+582516]
+    	Ordinal0 [0x004DE225+582181]
+    	Ordinal0 [0x004DE4C0+582848]
+    	Ordinal0 [0x0050C654+771668]
+    	Ordinal0 [0x00502FDC+733148]
+    	Ordinal0 [0x0052731C+881436]
+    	Ordinal0 [0x005015BF+726463]
+    	Ordinal0 [0x00527534+881972]
+    	Ordinal0 [0x0053B56A+963946]
+    	Ordinal0 [0x00527136+880950]
+    	Ordinal0 [0x004FFEFD+720637]
+    	Ordinal0 [0x00500F3F+724799]
+    	GetHandleVerifier [0x008FEED2+2769538]
+    	GetHandleVerifier [0x008F0D95+2711877]
+    	GetHandleVerifier [0x006DA03A+521194]
+    	GetHandleVerifier [0x006D8DA0+516432]
+    	Ordinal0 [0x005E682C+1665068]
+    	Ordinal0 [0x005EB128+1683752]
+    	Ordinal0 [0x005EB215+1683989]
+    	Ordinal0 [0x005F6484+1729668]
+    	BaseThreadInitThunk [0x75BF7BA9+25]
+    	RtlInitializeExceptionChain [0x76FEBB9B+107]
+    	RtlClearBits [0x76FEBB1F+191]
+
+```python
+elem.clear()
+elem = driver.find_element(By.XPATH, "//*[@id='ID']")
+elem.send_keys(my_id)
+```
+
+    ---------------------------------------------------------------------------
+
+    StaleElementReferenceException            Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_56996\4056264029.py in <module>
+    ----> 1 elem.clear()
+          2 elem = driver.find_element(By.XPATH, "//*[@id='ID']")
+          3 elem.send_keys(my_id)
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in clear(self)
+        114     def clear(self) -> None:
+        115         """Clears the text if it's a text entry element."""
+    --> 116         self._execute(Command.CLEAR_ELEMENT)
+        117
+        118     def get_property(self, name) -> str | bool | WebElement | dict:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in _execute(self, command, params)
+        408             params = {}
+        409         params["id"] = self._id
+    --> 410         return self._parent.execute(command, params)
+        411
+        412     def find_element(self, by=By.ID, value=None) -> WebElement:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webdriver.py in execute(self, driver_command, params)
+        442         response = self.command_executor.execute(driver_command, params)
+        443         if response:
+    --> 444             self.error_handler.check_response(response)
+        445             response["value"] = self._unwrap_value(response.get("value", None))
+        446             return response
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\errorhandler.py in check_response(self, response)
+        247                 alert_text = value["alert"].get("text")
+        248             raise exception_class(message, screen, stacktrace, alert_text)  # type: ignore[call-arg]  # mypy is not smart enough here
+    --> 249         raise exception_class(message, screen, stacktrace)
+
+
+    StaleElementReferenceException: Message: stale element reference: element is not attached to the page document
+      (Session info: chrome=107.0.5304.107)
+    Stacktrace:
+    Backtrace:
+    	Ordinal0 [0x0064ACD3+2075859]
+    	Ordinal0 [0x005DEE61+1633889]
+    	Ordinal0 [0x004DB7BD+571325]
+    	Ordinal0 [0x004DE374+582516]
+    	Ordinal0 [0x004DE225+582181]
+    	Ordinal0 [0x004DE4C0+582848]
+    	Ordinal0 [0x0050C654+771668]
+    	Ordinal0 [0x00502FDC+733148]
+    	Ordinal0 [0x0052731C+881436]
+    	Ordinal0 [0x005015BF+726463]
+    	Ordinal0 [0x00527534+881972]
+    	Ordinal0 [0x0053B56A+963946]
+    	Ordinal0 [0x00527136+880950]
+    	Ordinal0 [0x004FFEFD+720637]
+    	Ordinal0 [0x00500F3F+724799]
+    	GetHandleVerifier [0x008FEED2+2769538]
+    	GetHandleVerifier [0x008F0D95+2711877]
+    	GetHandleVerifier [0x006DA03A+521194]
+    	GetHandleVerifier [0x006D8DA0+516432]
+    	Ordinal0 [0x005E682C+1665068]
+    	Ordinal0 [0x005EB128+1683752]
+    	Ordinal0 [0x005EB215+1683989]
+    	Ordinal0 [0x005F6484+1729668]
+    	BaseThreadInitThunk [0x75BF7BA9+25]
+    	RtlInitializeExceptionChain [0x76FEBB9B+107]
+    	RtlClearBits [0x76FEBB1F+191]
+
+```python
+elem.clear()
+elem = driver.find_element(By.CSS_SELECTOR, "#ID")
+elem.send_keys(my_id)
+```
+
+    ---------------------------------------------------------------------------
+
+    StaleElementReferenceException            Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_56996\3921589247.py in <module>
+    ----> 1 elem.clear()
+          2 elem = driver.find_element(By.CSS_SELECTOR, "#ID")
+          3 elem.send_keys(my_id)
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in clear(self)
+        114     def clear(self) -> None:
+        115         """Clears the text if it's a text entry element."""
+    --> 116         self._execute(Command.CLEAR_ELEMENT)
+        117
+        118     def get_property(self, name) -> str | bool | WebElement | dict:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webelement.py in _execute(self, command, params)
+        408             params = {}
+        409         params["id"] = self._id
+    --> 410         return self._parent.execute(command, params)
+        411
+        412     def find_element(self, by=By.ID, value=None) -> WebElement:
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\webdriver.py in execute(self, driver_command, params)
+        442         response = self.command_executor.execute(driver_command, params)
+        443         if response:
+    --> 444             self.error_handler.check_response(response)
+        445             response["value"] = self._unwrap_value(response.get("value", None))
+        446             return response
+
+
+    ~\anaconda3\lib\site-packages\selenium\webdriver\remote\errorhandler.py in check_response(self, response)
+        247                 alert_text = value["alert"].get("text")
+        248             raise exception_class(message, screen, stacktrace, alert_text)  # type: ignore[call-arg]  # mypy is not smart enough here
+    --> 249         raise exception_class(message, screen, stacktrace)
+
+
+    StaleElementReferenceException: Message: stale element reference: element is not attached to the page document
+      (Session info: chrome=107.0.5304.107)
+    Stacktrace:
+    Backtrace:
+    	Ordinal0 [0x0064ACD3+2075859]
+    	Ordinal0 [0x005DEE61+1633889]
+    	Ordinal0 [0x004DB7BD+571325]
+    	Ordinal0 [0x004DE374+582516]
+    	Ordinal0 [0x004DE225+582181]
+    	Ordinal0 [0x004DE4C0+582848]
+    	Ordinal0 [0x0050C654+771668]
+    	Ordinal0 [0x00502FDC+733148]
+    	Ordinal0 [0x0052731C+881436]
+    	Ordinal0 [0x005015BF+726463]
+    	Ordinal0 [0x00527534+881972]
+    	Ordinal0 [0x0053B56A+963946]
+    	Ordinal0 [0x00527136+880950]
+    	Ordinal0 [0x004FFEFD+720637]
+    	Ordinal0 [0x00500F3F+724799]
+    	GetHandleVerifier [0x008FEED2+2769538]
+    	GetHandleVerifier [0x008F0D95+2711877]
+    	GetHandleVerifier [0x006DA03A+521194]
+    	GetHandleVerifier [0x006D8DA0+516432]
+    	Ordinal0 [0x005E682C+1665068]
+    	Ordinal0 [0x005EB128+1683752]
+    	Ordinal0 [0x005EB215+1683989]
+    	Ordinal0 [0x005F6484+1729668]
+    	BaseThreadInitThunk [0x75BF7BA9+25]
+    	RtlInitializeExceptionChain [0x76FEBB9B+107]
+    	RtlClearBits [0x76FEBB1F+191]
+
+```python
+options = webdriver.ChromeOptions()
+options.add_argument("headless")
+
+dvier = webdriver.Chrome("c:/test/chromedriver.exe", chrome_options = options)
+```
+
+    C:\Users\ehdal\AppData\Local\Temp\ipykernel_56996\316414333.py:4: DeprecationWarning: executable_path has been deprecated, please pass in a Service object
+      dvier = webdriver.Chrome("c:/test/chromedriver.exe", chrome_options = options)
+    C:\Users\ehdal\AppData\Local\Temp\ipykernel_56996\316414333.py:4: DeprecationWarning: use options instead of chrome_options
+      dvier = webdriver.Chrome("c:/test/chromedriver.exe", chrome_options = options)
+
+```python
+ # jupyter notebook warnings 메시지를 감출때
+import warnings
+warnings.filterwarnings(action="ignore") # action="default"
+```
+
+### ( 실습 )
+
+1. 유튜브 사이트
+2. 검색은 "파이썬 머신러닝" 검색후 결과 확인
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+driver = webdriver.Chrome("c:/test/chromedriver.exe")
+
+url = "https://www.youtube.com/"
+
+driver.get(url)
+
+
+elem = driver.find_element(By.NAME, "search_query")
+
+elem.send_keys("파이썬 머신러닝")
+elem.send_keys(Keys.RETURN)
+```
+
+```python
+
+```
+
+#### 3. python db연동
+
+### (1. python DB 연동 )
+
+1. mariadb ( mysql )
+2. 연결 -> pymysql
+
+```python
+import pymysql
+
+db = pymysql.connect(host="localhost", port=3306,
+                     user="root", passwd = "pass",
+                     db = "newsdb", charset="utf8")
+
+cursor = db.cursor()
+```
+
+    ---------------------------------------------------------------------------
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\3999767626.py in <module>
+          1 import pymysql
+          2
+    ----> 3 db = pymysql.connect(host="localhost", port=3306,
+          4                      user="root", passwd = "pass",
+          5                      db = "newsdb", charset="utf8")
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        351             self._sock = None
+        352         else:
+    --> 353             self.connect()
+        354
+        355     def __enter__(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        631
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+        635             if self.sql_mode is not None:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        919                 and plugin_name is not None
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+        923                 # send legacy handshake
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1016
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+       1020         return pkt
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        723             if self._result is not None and self._result.unbuffered_active is True:
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+        727
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        219         if DEBUG:
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+        223     def dump(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        141     if errorclass is None:
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+### ( 2. Table 생성 )
+
+```python
+sql_str = """
+    CREATE TABLE IF NOT EXISTS test (
+        no   int(2),
+        name varchar(10),
+        eng  int(3),
+        math int(3),
+        kor  int(3),
+        primary key(no)
+    )
+"""
+
+cursor.execute(sql_str)
+```
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\916471637.py in <module>
+         10 """
+         11
+    ---> 12 cursor.execute(sql_str)
+
+
+    NameError: name 'cursor' is not defined
+
+```python
+# data insert
+sql_str = """
+   INSERT INTO test values(4,'동동사',77,69,89)
+"""
+print(sql_str)
+
+cursor.execute(sql_str)
+
+db.commit()
+```
+
+       INSERT INTO test values(4,'동동사',77,69,89)
+
+
+
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\1336709508.py in <module>
+          5 print(sql_str)
+          6
+    ----> 7 cursor.execute(sql_str)
+          8
+          9 db.commit()
+
+
+    NameError: name 'cursor' is not defined
+
+```python
+# 데이터 불러오기
+sql_str = """
+   SELECT * FROM test
+"""
+cursor.execute(sql_str)
+cursor.fetchall()
+```
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\4007139429.py in <module>
+          3    SELECT * FROM test
+          4 """
+    ----> 5 cursor.execute(sql_str)
+          6 cursor.fetchall()
+
+
+    NameError: name 'cursor' is not defined
+
+```python
+# df to sql
+```
+
+```python
 import pandas as pd
+
+df = pd.DataFrame({"no":[11,12,13],
+                   "name":["일일","일이","일삼"],
+                   "eng":[61,71,81],
+                   "math":[72,83,92],
+                   "kor":[73,83,93]}
+                   )
+df
+```
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>no</th>
+      <th>name</th>
+      <th>eng</th>
+      <th>math</th>
+      <th>kor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>11</td>
+      <td>일일</td>
+      <td>61</td>
+      <td>72</td>
+      <td>73</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>12</td>
+      <td>일이</td>
+      <td>71</td>
+      <td>83</td>
+      <td>83</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>13</td>
+      <td>일삼</td>
+      <td>81</td>
+      <td>92</td>
+      <td>93</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+```python
+import pymysql
+
+from sqlalchemy import create_engine
+
+pymysql.install_as_MySQLdb()
+import MySQLdb
+
+engine = create_engine('mysql://root:pass@127.0.0.1/newsdb', encoding="utf-8")
 ```
 
 ```python
-a = np.arange(15).reshape(3,5)
-a
+df.to_sql(name="test", con=engine,if_exists="append", index=False)
 ```
 
-    array([[ 0,  1,  2,  3,  4],
-           [ 5,  6,  7,  8,  9],
-           [10, 11, 12, 13, 14]])
+    ---------------------------------------------------------------------------
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        352         else:
+    --> 353             self.connect()
+        354
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+
+    The above exception was the direct cause of the following exception:
+
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\3646360395.py in <module>
+    ----> 1 df.to_sql(name="test", con=engine,if_exists="append", index=False)
+
+
+    ~\anaconda3\lib\site-packages\pandas\core\generic.py in to_sql(self, name, con, schema, if_exists, index, index_label, chunksize, dtype, method)
+       2949         from pandas.io import sql
+       2950
+    -> 2951         return sql.to_sql(
+       2952             self,
+       2953             name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in to_sql(frame, name, con, schema, if_exists, index, index_label, chunksize, dtype, method, engine, **engine_kwargs)
+        696         )
+        697
+    --> 698     return pandas_sql.to_sql(
+        699         frame,
+        700         name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in to_sql(self, frame, name, if_exists, index, index_label, schema, chunksize, dtype, method, engine, **engine_kwargs)
+       1730         sql_engine = get_engine(engine)
+       1731
+    -> 1732         table = self.prep_table(
+       1733             frame=frame,
+       1734             name=name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in prep_table(self, frame, name, if_exists, index, index_label, schema, dtype)
+       1629             dtype=dtype,
+       1630         )
+    -> 1631         table.create()
+       1632         return table
+       1633
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in create(self)
+        830
+        831     def create(self):
+    --> 832         if self.exists():
+        833             if self.if_exists == "fail":
+        834                 raise ValueError(f"Table '{self.name}' already exists.")
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in exists(self)
+        814
+        815     def exists(self):
+    --> 816         return self.pd_sql.has_table(self.name, self.schema)
+        817
+        818     def sql_schema(self):
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in has_table(self, name, schema)
+       1763             from sqlalchemy import inspect
+       1764
+    -> 1765             insp = inspect(self.connectable)
+       1766             return insp.has_table(name, schema or self.meta.schema)
+       1767         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\inspection.py in inspect(subject, raiseerr)
+         62             if reg is True:
+         63                 return subject
+    ---> 64             ret = reg(subject)
+         65             if ret is not None:
+         66                 break
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _engine_insp(bind)
+        180     @inspection._inspects(Engine)
+        181     def _engine_insp(bind):
+    --> 182         return Inspector._construct(Inspector._init_engine, bind)
+        183
+        184     @inspection._inspects(Connection)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _construct(cls, init, bind)
+        115
+        116         self = cls.__new__(cls)
+    --> 117         init(self, bind)
+        118         return self
+        119
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _init_engine(self, engine)
+        126     def _init_engine(self, engine):
+        127         self.bind = self.engine = engine
+    --> 128         engine.connect().close()
+        129         self._op_context_requires_connect = True
+        130         self.dialect = self.engine.dialect
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in connect(self, close_with_result)
+       3232         """
+       3233
+    -> 3234         return self._connection_cls(self, close_with_result=close_with_result)
+       3235
+       3236     @util.deprecated(
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in __init__(self, engine, connection, close_with_result, _branch_from, _execution_options, _dispatch, _has_events, _allow_revalidate)
+         94                 connection
+         95                 if connection is not None
+    ---> 96                 else engine.raw_connection()
+         97             )
+         98
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in raw_connection(self, _connection)
+       3311
+       3312         """
+    -> 3313         return self._wrap_pool_connect(self.pool.connect, _connection)
+       3314
+       3315
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+    -> 3283                 Connection._handle_dbapi_exception_noconnection(
+       3284                     e, dialect, self
+       3285                 )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _handle_dbapi_exception_noconnection(cls, e, dialect, engine)
+       2115             util.raise_(newraise, with_traceback=exc_info[2], from_=e)
+       2116         elif should_wrap:
+    -> 2117             util.raise_(
+       2118                 sqlalchemy_exception, with_traceback=exc_info[2], from_=e
+       2119             )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3278         dialect = self.dialect
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        308
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+        312     def _return_conn(self, record):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        866     def _checkout(cls, pool, threadconns=None, fairy=None):
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+        870             fairy._pool = pool
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        474     @classmethod
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+        478             dbapi_connection = rec.get_connection()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        144             except:
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+        148             return self._do_get()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        141         if self._inc_overflow():
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+        145                 with util.safe_reraise():
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        254         """Called by subclasses to create a new ConnectionRecord."""
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+        258     def _invalidate(self, connection, exception=None, _checkin=True):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        369         self.__pool = pool
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+        373
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        664         except Exception as e:
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+        668             # in SQLAlchemy 1.4 the first_connect event is not used by
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        659         try:
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+        663             self.fresh = True
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        588                     if connection is not None:
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+        592         creator = pop_kwarg("creator", connect)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        595     def connect(self, *cargs, **cparams):
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+        599     def create_connect_args(self, url):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        351             self._sock = None
+        352         else:
+    --> 353             self.connect()
+        354
+        355     def __enter__(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        631
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+        635             if self.sql_mode is not None:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        919                 and plugin_name is not None
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+        923                 # send legacy handshake
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1016
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+       1020         return pkt
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        723             if self._result is not None and self._result.unbuffered_active is True:
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+        727
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        219         if DEBUG:
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+        223     def dump(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        141     if errorclass is None:
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+    (Background on this error at: https://sqlalche.me/e/14/e3q8)
 
 ```python
-a.shape
+df
 ```
 
-    (3, 5)
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>no</th>
+      <th>name</th>
+      <th>eng</th>
+      <th>math</th>
+      <th>kor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>11</td>
+      <td>일일</td>
+      <td>61</td>
+      <td>72</td>
+      <td>73</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>12</td>
+      <td>일이</td>
+      <td>71</td>
+      <td>83</td>
+      <td>83</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>13</td>
+      <td>일삼</td>
+      <td>81</td>
+      <td>92</td>
+      <td>93</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 ```python
-a.ndim
+sql_str = """
+   select * from test
+"""
+
+pd.read_sql(sql_str, db)
 ```
 
-    2
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\1933837676.py in <module>
+          3 """
+          4
+    ----> 5 pd.read_sql(sql_str, db)
+
+
+    NameError: name 'db' is not defined
 
 ```python
-a.dtype
+pd.read_sql(sql_str, engine)
 ```
 
-    dtype('int32')
+    ---------------------------------------------------------------------------
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        352         else:
+    --> 353             self.connect()
+        354
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+
+    The above exception was the direct cause of the following exception:
+
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\2511218155.py in <module>
+    ----> 1 pd.read_sql(sql_str, engine)
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in read_sql(sql, con, index_col, coerce_float, params, parse_dates, columns, chunksize)
+        591         )
+        592     else:
+    --> 593         return pandas_sql.read_query(
+        594             sql,
+        595             index_col=index_col,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in read_query(self, sql, index_col, coerce_float, parse_dates, params, chunksize, dtype)
+       1558         args = _convert_params(sql, params)
+       1559
+    -> 1560         result = self.execute(*args)
+       1561         columns = result.keys()
+       1562
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in execute(self, *args, **kwargs)
+       1403     def execute(self, *args, **kwargs):
+       1404         """Simple passthrough to SQLAlchemy connectable"""
+    -> 1405         return self.connectable.execution_options().execute(*args, **kwargs)
+       1406
+       1407     def read_table(
+
+
+    <string> in execute(self, statement, *multiparams, **params)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\deprecations.py in warned(fn, *args, **kwargs)
+        400         if not skip_warning:
+        401             _warn_with_version(message, version, wtype, stacklevel=3)
+    --> 402         return fn(*args, **kwargs)
+        403
+        404     doc = func.__doc__ is not None and func.__doc__ or ""
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in execute(self, statement, *multiparams, **params)
+       3173
+       3174         """
+    -> 3175         connection = self.connect(close_with_result=True)
+       3176         return connection.execute(statement, *multiparams, **params)
+       3177
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in connect(self, close_with_result)
+       3232         """
+       3233
+    -> 3234         return self._connection_cls(self, close_with_result=close_with_result)
+       3235
+       3236     @util.deprecated(
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in __init__(self, engine, connection, close_with_result, _branch_from, _execution_options, _dispatch, _has_events, _allow_revalidate)
+         94                 connection
+         95                 if connection is not None
+    ---> 96                 else engine.raw_connection()
+         97             )
+         98
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in raw_connection(self, _connection)
+       3311
+       3312         """
+    -> 3313         return self._wrap_pool_connect(self.pool.connect, _connection)
+       3314
+       3315
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+    -> 3283                 Connection._handle_dbapi_exception_noconnection(
+       3284                     e, dialect, self
+       3285                 )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _handle_dbapi_exception_noconnection(cls, e, dialect, engine)
+       2115             util.raise_(newraise, with_traceback=exc_info[2], from_=e)
+       2116         elif should_wrap:
+    -> 2117             util.raise_(
+       2118                 sqlalchemy_exception, with_traceback=exc_info[2], from_=e
+       2119             )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3278         dialect = self.dialect
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        308
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+        312     def _return_conn(self, record):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        866     def _checkout(cls, pool, threadconns=None, fairy=None):
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+        870             fairy._pool = pool
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        474     @classmethod
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+        478             dbapi_connection = rec.get_connection()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        144             except:
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+        148             return self._do_get()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        141         if self._inc_overflow():
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+        145                 with util.safe_reraise():
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        254         """Called by subclasses to create a new ConnectionRecord."""
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+        258     def _invalidate(self, connection, exception=None, _checkin=True):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        369         self.__pool = pool
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+        373
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        664         except Exception as e:
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+        668             # in SQLAlchemy 1.4 the first_connect event is not used by
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        659         try:
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+        663             self.fresh = True
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        588                     if connection is not None:
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+        592         creator = pop_kwarg("creator", connect)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        595     def connect(self, *cargs, **cparams):
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+        599     def create_connect_args(self, url):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        351             self._sock = None
+        352         else:
+    --> 353             self.connect()
+        354
+        355     def __enter__(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        631
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+        635             if self.sql_mode is not None:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        919                 and plugin_name is not None
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+        923                 # send legacy handshake
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1016
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+       1020         return pkt
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        723             if self._result is not None and self._result.unbuffered_active is True:
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+        727
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        219         if DEBUG:
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+        223     def dump(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        141     if errorclass is None:
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+    (Background on this error at: https://sqlalche.me/e/14/e3q8)
 
 ```python
-a.dtype.name
-```
+from sqlalchemy import create_engine
 
-    'int32'
+# MariaDB Connector using pymysql
+pymysql.install_as_MySQLdb()
 
-```python
-a.itemsize
-```
+import MySQLdb
 
-    4
-
-```python
-a.size
-```
-
-    15
-
-```python
-from numpy import pi
+engine = create_engine("mysql://root:pass@127.0.0.1/newsdb",encoding="utf-8")
 ```
 
 ```python
-pi
+df.to_sql(name="test",con=engine,
+         if_exists="append", index=False)
 ```
 
-    3.141592653589793
+    ---------------------------------------------------------------------------
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        207         try:
+    --> 208             raise exception
+        209         finally:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        352         else:
+    --> 353             self.connect()
+        354
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+
+    The above exception was the direct cause of the following exception:
+
+
+    OperationalError                          Traceback (most recent call last)
+
+    ~\AppData\Local\Temp\ipykernel_58600\960457481.py in <module>
+    ----> 1 df.to_sql(name="test",con=engine,
+          2          if_exists="append", index=False)
+
+
+    ~\anaconda3\lib\site-packages\pandas\core\generic.py in to_sql(self, name, con, schema, if_exists, index, index_label, chunksize, dtype, method)
+       2949         from pandas.io import sql
+       2950
+    -> 2951         return sql.to_sql(
+       2952             self,
+       2953             name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in to_sql(frame, name, con, schema, if_exists, index, index_label, chunksize, dtype, method, engine, **engine_kwargs)
+        696         )
+        697
+    --> 698     return pandas_sql.to_sql(
+        699         frame,
+        700         name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in to_sql(self, frame, name, if_exists, index, index_label, schema, chunksize, dtype, method, engine, **engine_kwargs)
+       1730         sql_engine = get_engine(engine)
+       1731
+    -> 1732         table = self.prep_table(
+       1733             frame=frame,
+       1734             name=name,
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in prep_table(self, frame, name, if_exists, index, index_label, schema, dtype)
+       1629             dtype=dtype,
+       1630         )
+    -> 1631         table.create()
+       1632         return table
+       1633
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in create(self)
+        830
+        831     def create(self):
+    --> 832         if self.exists():
+        833             if self.if_exists == "fail":
+        834                 raise ValueError(f"Table '{self.name}' already exists.")
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in exists(self)
+        814
+        815     def exists(self):
+    --> 816         return self.pd_sql.has_table(self.name, self.schema)
+        817
+        818     def sql_schema(self):
+
+
+    ~\anaconda3\lib\site-packages\pandas\io\sql.py in has_table(self, name, schema)
+       1763             from sqlalchemy import inspect
+       1764
+    -> 1765             insp = inspect(self.connectable)
+       1766             return insp.has_table(name, schema or self.meta.schema)
+       1767         else:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\inspection.py in inspect(subject, raiseerr)
+         62             if reg is True:
+         63                 return subject
+    ---> 64             ret = reg(subject)
+         65             if ret is not None:
+         66                 break
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _engine_insp(bind)
+        180     @inspection._inspects(Engine)
+        181     def _engine_insp(bind):
+    --> 182         return Inspector._construct(Inspector._init_engine, bind)
+        183
+        184     @inspection._inspects(Connection)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _construct(cls, init, bind)
+        115
+        116         self = cls.__new__(cls)
+    --> 117         init(self, bind)
+        118         return self
+        119
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\reflection.py in _init_engine(self, engine)
+        126     def _init_engine(self, engine):
+        127         self.bind = self.engine = engine
+    --> 128         engine.connect().close()
+        129         self._op_context_requires_connect = True
+        130         self.dialect = self.engine.dialect
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in connect(self, close_with_result)
+       3232         """
+       3233
+    -> 3234         return self._connection_cls(self, close_with_result=close_with_result)
+       3235
+       3236     @util.deprecated(
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in __init__(self, engine, connection, close_with_result, _branch_from, _execution_options, _dispatch, _has_events, _allow_revalidate)
+         94                 connection
+         95                 if connection is not None
+    ---> 96                 else engine.raw_connection()
+         97             )
+         98
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in raw_connection(self, _connection)
+       3311
+       3312         """
+    -> 3313         return self._wrap_pool_connect(self.pool.connect, _connection)
+       3314
+       3315
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+    -> 3283                 Connection._handle_dbapi_exception_noconnection(
+       3284                     e, dialect, self
+       3285                 )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _handle_dbapi_exception_noconnection(cls, e, dialect, engine)
+       2115             util.raise_(newraise, with_traceback=exc_info[2], from_=e)
+       2116         elif should_wrap:
+    -> 2117             util.raise_(
+       2118                 sqlalchemy_exception, with_traceback=exc_info[2], from_=e
+       2119             )
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\base.py in _wrap_pool_connect(self, fn, connection)
+       3278         dialect = self.dialect
+       3279         try:
+    -> 3280             return fn()
+       3281         except dialect.dbapi.Error as e:
+       3282             if connection is None:
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in connect(self)
+        308
+        309         """
+    --> 310         return _ConnectionFairy._checkout(self)
+        311
+        312     def _return_conn(self, record):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _checkout(cls, pool, threadconns, fairy)
+        866     def _checkout(cls, pool, threadconns=None, fairy=None):
+        867         if not fairy:
+    --> 868             fairy = _ConnectionRecord.checkout(pool)
+        869
+        870             fairy._pool = pool
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in checkout(cls, pool)
+        474     @classmethod
+        475     def checkout(cls, pool):
+    --> 476         rec = pool._do_get()
+        477         try:
+        478             dbapi_connection = rec.get_connection()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        144             except:
+        145                 with util.safe_reraise():
+    --> 146                     self._dec_overflow()
+        147         else:
+        148             return self._do_get()
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\impl.py in _do_get(self)
+        141         if self._inc_overflow():
+        142             try:
+    --> 143                 return self._create_connection()
+        144             except:
+        145                 with util.safe_reraise():
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in _create_connection(self)
+        254         """Called by subclasses to create a new ConnectionRecord."""
+        255
+    --> 256         return _ConnectionRecord(self)
+        257
+        258     def _invalidate(self, connection, exception=None, _checkin=True):
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __init__(self, pool, connect)
+        369         self.__pool = pool
+        370         if connect:
+    --> 371             self.__connect()
+        372         self.finalize_callback = deque()
+        373
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        664         except Exception as e:
+        665             with util.safe_reraise():
+    --> 666                 pool.logger.debug("Error on connect(): %s", e)
+        667         else:
+        668             # in SQLAlchemy 1.4 the first_connect event is not used by
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\langhelpers.py in __exit__(self, type_, value, traceback)
+         68             self._exc_info = None  # remove potential circular references
+         69             if not self.warn_only:
+    ---> 70                 compat.raise_(
+         71                     exc_value,
+         72                     with_traceback=exc_tb,
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\util\compat.py in raise_(***failed resolving arguments***)
+        206
+        207         try:
+    --> 208             raise exception
+        209         finally:
+        210             # credit to
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\pool\base.py in __connect(self)
+        659         try:
+        660             self.starttime = time.time()
+    --> 661             self.dbapi_connection = connection = pool._invoke_creator(self)
+        662             pool.logger.debug("Created new connection %r", connection)
+        663             self.fresh = True
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\create.py in connect(connection_record)
+        588                     if connection is not None:
+        589                         return connection
+    --> 590             return dialect.connect(*cargs, **cparams)
+        591
+        592         creator = pop_kwarg("creator", connect)
+
+
+    ~\anaconda3\lib\site-packages\sqlalchemy\engine\default.py in connect(self, *cargs, **cparams)
+        595     def connect(self, *cargs, **cparams):
+        596         # inherits the docstring from interfaces.Dialect.connect
+    --> 597         return self.dbapi.connect(*cargs, **cparams)
+        598
+        599     def create_connect_args(self, url):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in __init__(self, user, password, host, database, unix_socket, port, charset, sql_mode, read_default_file, conv, use_unicode, client_flag, cursorclass, init_command, connect_timeout, read_default_group, autocommit, local_infile, max_allowed_packet, defer_connect, auth_plugin_map, read_timeout, write_timeout, bind_address, binary_prefix, program_name, server_public_key, ssl, ssl_ca, ssl_cert, ssl_disabled, ssl_key, ssl_verify_cert, ssl_verify_identity, compress, named_pipe, passwd, db)
+        351             self._sock = None
+        352         else:
+    --> 353             self.connect()
+        354
+        355     def __enter__(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in connect(self, sock)
+        631
+        632             self._get_server_information()
+    --> 633             self._request_authentication()
+        634
+        635             if self.sql_mode is not None:
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _request_authentication(self)
+        919                 and plugin_name is not None
+        920             ):
+    --> 921                 auth_packet = self._process_auth(plugin_name, auth_packet)
+        922             else:
+        923                 # send legacy handshake
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _process_auth(self, plugin_name, auth_packet)
+       1016
+       1017         self.write_packet(data)
+    -> 1018         pkt = self._read_packet()
+       1019         pkt.check_error()
+       1020         return pkt
+
+
+    ~\anaconda3\lib\site-packages\pymysql\connections.py in _read_packet(self, packet_type)
+        723             if self._result is not None and self._result.unbuffered_active is True:
+        724                 self._result.unbuffered_active = False
+    --> 725             packet.raise_for_error()
+        726         return packet
+        727
+
+
+    ~\anaconda3\lib\site-packages\pymysql\protocol.py in raise_for_error(self)
+        219         if DEBUG:
+        220             print("errno =", errno)
+    --> 221         err.raise_mysql_exception(self._data)
+        222
+        223     def dump(self):
+
+
+    ~\anaconda3\lib\site-packages\pymysql\err.py in raise_mysql_exception(data)
+        141     if errorclass is None:
+        142         errorclass = InternalError if errno < 1000 else OperationalError
+    --> 143     raise errorclass(errno, errval)
+
+
+    OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+    (Background on this error at: https://sqlalche.me/e/14/e3q8)
 
 ```python
-x = np.linspace(0, 2 * pi, 100)
+
 ```
-
-```python
-np.sin(x)
-```
-
-    array([ 0.00000000e+00,  6.34239197e-02,  1.26592454e-01,  1.89251244e-01,
-            2.51147987e-01,  3.12033446e-01,  3.71662456e-01,  4.29794912e-01,
-            4.86196736e-01,  5.40640817e-01,  5.92907929e-01,  6.42787610e-01,
-            6.90079011e-01,  7.34591709e-01,  7.76146464e-01,  8.14575952e-01,
-            8.49725430e-01,  8.81453363e-01,  9.09631995e-01,  9.34147860e-01,
-            9.54902241e-01,  9.71811568e-01,  9.84807753e-01,  9.93838464e-01,
-            9.98867339e-01,  9.99874128e-01,  9.96854776e-01,  9.89821442e-01,
-            9.78802446e-01,  9.63842159e-01,  9.45000819e-01,  9.22354294e-01,
-            8.95993774e-01,  8.66025404e-01,  8.32569855e-01,  7.95761841e-01,
-            7.55749574e-01,  7.12694171e-01,  6.66769001e-01,  6.18158986e-01,
-            5.67059864e-01,  5.13677392e-01,  4.58226522e-01,  4.00930535e-01,
-            3.42020143e-01,  2.81732557e-01,  2.20310533e-01,  1.58001396e-01,
-            9.50560433e-02,  3.17279335e-02, -3.17279335e-02, -9.50560433e-02,
-           -1.58001396e-01, -2.20310533e-01, -2.81732557e-01, -3.42020143e-01,
-           -4.00930535e-01, -4.58226522e-01, -5.13677392e-01, -5.67059864e-01,
-           -6.18158986e-01, -6.66769001e-01, -7.12694171e-01, -7.55749574e-01,
-           -7.95761841e-01, -8.32569855e-01, -8.66025404e-01, -8.95993774e-01,
-           -9.22354294e-01, -9.45000819e-01, -9.63842159e-01, -9.78802446e-01,
-           -9.89821442e-01, -9.96854776e-01, -9.99874128e-01, -9.98867339e-01,
-           -9.93838464e-01, -9.84807753e-01, -9.71811568e-01, -9.54902241e-01,
-           -9.34147860e-01, -9.09631995e-01, -8.81453363e-01, -8.49725430e-01,
-           -8.14575952e-01, -7.76146464e-01, -7.34591709e-01, -6.90079011e-01,
-           -6.42787610e-01, -5.92907929e-01, -5.40640817e-01, -4.86196736e-01,
-           -4.29794912e-01, -3.71662456e-01, -3.12033446e-01, -2.51147987e-01,
-           -1.89251244e-01, -1.26592454e-01, -6.34239197e-02, -2.44929360e-16])
-
-```python
-b = np.arange(12).reshape(3, 4);b
-```
-
-    array([[ 0,  1,  2,  3],
-           [ 4,  5,  6,  7],
-           [ 8,  9, 10, 11]])
-
-```python
-b.sum(axis=0)
-```
-
-    array([12, 15, 18, 21])
-
-```python
-b.sum(axis=1)
-```
-
-    array([ 6, 22, 38])
-
-```python
-b.cumsum(axis=1)
-```
-
-    array([[ 0,  1,  3,  6],
-           [ 4,  9, 15, 22],
-           [ 8, 17, 27, 38]], dtype=int32)
-
-```python
-rg = np.random.default_rng(1)
-```
-
-```python
-rg = np.random.default_rng(3)
-
-a = np.floor(10 * rg.random((3, 4)))
-a
-```
-
-    array([[0., 2., 8., 5.],
-           [0., 4., 4., 1.],
-           [7., 1., 3., 5.]])
-
-```python
-a.resize((2, 6));a
-```
-
-    array([[0., 2., 8., 5., 0., 4.],
-           [4., 1., 7., 1., 3., 5.]])
-
-```python
-a.reshape(3,4)
-```
-
-    array([[0., 2., 8., 5.],
-           [0., 4., 4., 1.],
-           [7., 1., 3., 5.]])
-
-```python
-a.reshape(3,-1)
-```
-
-    array([[0., 2., 8., 5.],
-           [0., 4., 4., 1.],
-           [7., 1., 3., 5.]])
-
-```python
-a.reshape(2,3,-1)
-```
-
-    array([[[0., 2.],
-            [8., 5.],
-            [0., 4.]],
-
-           [[4., 1.],
-            [7., 1.],
-            [3., 5.]]])
-
-```python
-a1 = a.reshape(2,-1,2); a1.shape
-```
-
-    (2, 3, 2)
-
-```python
-a = np.array([4., 2.])
-b = np.array([3., 8.])
-```
-
-```python
-a
-```
-
-    array([4., 2.])
-
-```python
-b
-```
-
-    array([3., 8.])
-
-```python
-np.column_stack((a, b))
-```
-
-    array([[4., 3.],
-           [2., 8.]])
-
-```python
-np.hstack((a, b))
-```
-
-    array([4., 2., 3., 8.])
-
-```python
-from numpy import newaxis
-```
-
-```python
-a
-```
-
-    array([4., 2.])
-
-```python
-a[:, newaxis]
-```
-
-    array([[4.],
-           [2.]])
-
-```python
-np.column_stack((a[:, newaxis], b[:, newaxis]))
-```
-
-    array([[4., 3.],
-           [2., 8.]])
-
-```python
-a = np.floor(10 * rg.random((2, 12)))
-```
-
-```python
-a
-```
-
-    array([[4., 5., 7., 9., 2., 6., 6., 2., 0., 9., 2., 3.],
-           [8., 5., 4., 7., 0., 7., 3., 0., 6., 9., 2., 6.]])
-
-```python
-np.hsplit(a, 4)
-```
-
-    [array([[4., 5., 7.],
-            [8., 5., 4.]]),
-     array([[9., 2., 6.],
-            [7., 0., 7.]]),
-     array([[6., 2., 0.],
-            [3., 0., 6.]]),
-     array([[9., 2., 3.],
-            [9., 2., 6.]])]
-
-```python
-np.hsplit(a, (3, 4))
-```
-
-    [array([[4., 5., 7.],
-            [8., 5., 4.]]),
-     array([[9.],
-            [7.]]),
-     array([[2., 6., 6., 2., 0., 9., 2., 3.],
-            [0., 7., 3., 0., 6., 9., 2., 6.]])]
-
-```python
-a = np.arange(12)**2
-a
-```
-
-    array([  0,   1,   4,   9,  16,  25,  36,  49,  64,  81, 100, 121],
-          dtype=int32)
-
-```python
-i = np.array([1, 1, 3, 8, 5]);i
-```
-
-    array([1, 1, 3, 8, 5])
-
-```python
-a[i]
-```
-
-    array([ 1,  1,  9, 64, 25], dtype=int32)
-
-```python
-a
-```
-
-    array([  0,   1,   4,   9,  16,  25,  36,  49,  64,  81, 100, 121],
-          dtype=int32)
-
-```python
-j = np.array([[3, 4], [9, 7]]) ;j
-```
-
-    array([[3, 4],
-           [9, 7]])
-
-```python
-a[j]
-```
-
-    array([[ 9, 16],
-           [81, 49]], dtype=int32)
-
-```python
-palette = np.array([[0, 0, 0],         # black
-                    [255, 0, 0],       # red
-                    [0, 255, 0],       # green
-                    [0, 0, 255],       # blue
-                    [255, 255, 255]])  # white
-palette
-```
-
-    array([[  0,   0,   0],
-           [255,   0,   0],
-           [  0, 255,   0],
-           [  0,   0, 255],
-           [255, 255, 255]])
-
-```python
-data = np.sin(np.arange(20)).reshape(5, 4);data
-```
-
-    array([[ 0.        ,  0.84147098,  0.90929743,  0.14112001],
-           [-0.7568025 , -0.95892427, -0.2794155 ,  0.6569866 ],
-           [ 0.98935825,  0.41211849, -0.54402111, -0.99999021],
-           [-0.53657292,  0.42016704,  0.99060736,  0.65028784],
-           [-0.28790332, -0.96139749, -0.75098725,  0.14987721]])
-
-```python
-data.argmax(axis=0)
-```
-
-    array([2, 0, 3, 1], dtype=int64)
