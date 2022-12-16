@@ -2,9 +2,9 @@
 layout: post
 title: airbnb 클론 프로젝트 - Amenity Detection
 subtitle: Custom Dataset에 대한 Object Detection 프로젝트
-cover-img: /assets/img/amenity_thumb.png
-thumbnail-img: /assets/img/amenity_thumb.png
-share-img: /assets/img/amenity_thumb.png
+cover-img: /assets/images/amenity_thumb.png
+thumbnail-img: /assets/images/amenity_thumb.png
+share-img: /assets/images/amenity_thumb.png
 tags: [object detection, custom dataset, centernet]
 ---
 
@@ -16,17 +16,17 @@ Object Detection은 컴퓨터 비전 분야의 대표적인 문제영역으로 �
 
 이때 Object Detection의 예측 결과로 출력되는 것은 한 이미지 내에 존재하는 물체들의 위치를 나타내는 **[Bounding Box의 꼭지점 좌표(x_min, y_min, x_max, y_max), 물체의 label, 검출 결과에 대한 확신의 정도]** 형태가 됩니다.
 
-![Untitled](../assets/img/Untitled.png)
+![Untitled](../assets/images/Untitled.png)
 
 그림 1 - Object Detection 모델의 예측 결과 - (Bounding Box의 위치, 물체의 종류, 확신의 정도) [1]
 
 Object Detection 기술은 자율주행, 무인상점 운영 등 다양한 분야의 현실세계 문제에 활발히 사용 되고 있습니다.
 
-![Untitled 1](../assets/img/Untitled%201.png)
+![Untitled 1](../assets/images/Untitled%201.png)
 
 그림 2 - Object Detection 기술을 활용한 Tesla 자동차의 자율주행 [2]
 
-![Untitled 2](../assets/img/Untitled%202.png)
+![Untitled 2](../assets/images/Untitled%202.png)
 
 그림 3 - Amazon Go Object Detection 기술을 활용한 무인상점 운영 [3]
 
@@ -40,7 +40,7 @@ airbnb는 숙박공유 서비스를 제공하는 세계적인 기업입니다. a
 
 airbnb 데이터 사이언스팀은 TensorFlow를 활용해서 Amenity Detection 프로젝트를 수행하였습니다. [4] airbnb팀의 Amenity Detection 프로젝트는 TensorFlow를 활용해서 실제문제를 해결한 대표 우수 사례로 선정되어 TensorFlow 공식 홈페이지에도 게제되었습니다.
 
-![Untitled 3](../assets/img/Untitled%203.png)
+![Untitled 3](../assets/images/Untitled%203.png)
 
 그림 4 - TensorFlow를 활용한 대표 우수사례로 선정된 airbnb의 Amenity Detection 프로젝트[3]
 
@@ -52,7 +52,7 @@ TensorFlow Object Detection API는 구글에서 공개한 TensorFlow를 이용�
 
 Faster-RCNN, SSD, EfficientDet, CenterNet 등 Object Detection을 위한 최신 딥러닝 모델의 Pre-Trained 파라미터와 학습을 위한 코드와 설정파일 등을 제공합니다.
 
-![Untitled 4](../assets/img/Untitled%204.png)
+![Untitled 4](../assets/images/Untitled%204.png)
 
 그림 5 - TensorFlow Object Detection API를 이용한 검출 예시 [6]
 
@@ -62,18 +62,19 @@ airbnb 데이터 사이언스 팀에서는 Faster R-CNN과 SSD 모델을 이용�
 
 Google Open Image Dataset은 구글에서 공개한 대량의 이미지와 600개의 레이블에 대한 Bounding box를 포함하고 있는 데이터셋입니다. Open Image Dataset V4 기준으로 1,743,042장의 Training Image와 14,610,229개의 Bounding Box를 가지고 있습니다. [8]
 
-![Untitled 5](../assets/img/Untitled%205.png)
+![Untitled 5](../assets/images/Untitled%205.png)
 
 그림 6 - Google Open Images Dataset V4에 대한 정보
 
 airbnb 데이터 사이언스 팀과 동일하게 Google Open Images Dataset V4에서 30개의 Amenity label만을 추출하였습니다. 검출 타겟이 되는 30개의 amenity class는 아래와 같습니다.
 
 > ['Toilet', 'Swimming pool', 'Bed', 'Billiard table', 'Sink',
-> 'Fountain', 'Oven', 'Ceiling fan', 'Television', 'Microwave oven',
-> 'Gas stove', 'Refrigerator', 'Kitchen & dining room table', 'Washing machine', 'Bathtub',
-> 'Stairs', 'Fireplace', 'Pillow', 'Mirror', 'Shower',
-> 'Couch', 'Countertop', 'Coffeemaker', 'Dishwasher', 'Sofa bed',
-> 'Tree house', 'Towel', 'Porch', 'Wine rack', 'Jacuzzi']
+>
+> > 'Fountain', 'Oven', 'Ceiling fan', 'Television', 'Microwave oven',
+> > 'Gas stove', 'Refrigerator', 'Kitchen & dining room table', 'Washing machine', 'Bathtub',
+> > 'Stairs', 'Fireplace', 'Pillow', 'Mirror', 'Shower',
+> > 'Couch', 'Countertop', 'Coffeemaker', 'Dishwasher', 'Sofa bed',
+> > 'Tree house', 'Towel', 'Porch', 'Wine rack', 'Jacuzzi']
 
 전체 1,743,042장의 이미지에서 위 30개의 amenity class를 포함한 이미지를 선별한 결과 **총 34,835장의 이미지**를 학습을 위한 이미지로 선별하였습니다. 이중에서 **90%를 트레이닝 데이터로, 10%를 Evaluation을 위한 테스트 데이터**로 활용하였습니다.
 
@@ -81,7 +82,7 @@ airbnb 데이터 사이언스 팀과 동일하게 Google Open Images Dataset V4�
 
 CenterNet 모델을 이용해서 30개의 Amenity class를 포함하고 있는 34,835장의 이미지의 90%인 31,351장의 이미지를 이용해서 140,000 step의 트레이닝을 진행하였습니다.
 
-![Untitled 6](../assets/img/Untitled%206.png)
+![Untitled 6](../assets/images/Untitled%206.png)
 
 그림 7 - 140,000 step 동안의 트레이닝 과정에 대한 TensorBoard 스크린샷
 
@@ -89,7 +90,7 @@ CenterNet 모델을 이용해서 30개의 Amenity class를 포함하고 있는 3
 
 140,000 step의 트레이닝 이후 34,835장의 이미지의 10%인 3,483장의 테스트 이미지에 대해 다음과 같은 Evaluation 결과를 얻을 수 있었습니다.
 
-![Untitled 7](../assets/img/Untitled%207.png)
+![Untitled 7](../assets/images/Untitled%207.png)
 
 그림 8 - Evaluation 과정에 대한 TensorBoard 스크린샷
 
