@@ -1,5 +1,5 @@
 ---
-layout: single
+layout: post
 title: "2022.12.02 centernet 이미지 분류"
 categories: project
 author_profile: false
