@@ -3,9 +3,6 @@ layout: single
 title: "2022.12.02 centernet 이미지 분류"
 categories: project
 author_profile: false
-toc: true
-toc_label: "Unique Title"
-toc_icon: "heart" # corresponding Font Awesome icon name (without fa prefix)
 cover-img: /assets/images/amenity_thumb.png
 thumbnail-img: /assets/images/amenity_thumb.png
 share-img: /assets/images/amenity_thumb.png
